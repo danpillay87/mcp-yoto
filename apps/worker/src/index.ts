@@ -40,6 +40,7 @@ import { OAuthProvider } from "@cloudflare/workers-oauth-provider";
 import { Hono } from "hono";
 import {
   ACCESS_TOKEN_TTL_SECONDS,
+  CLIENT_REGISTRATION_TTL_SECONDS,
   ConfigError,
   type Env,
   getConfig,
@@ -106,6 +107,11 @@ function createProvider(env: Env): OAuthProvider<Env> {
 
     accessTokenTTL: ACCESS_TOKEN_TTL_SECONDS,
     refreshTokenTTL: REFRESH_TOKEN_TTL_SECONDS,
+    // Security-review recommendation (MEDIUM): DCR-registered clients
+    // (`client:*` KV keys) now expire after 30 days instead of living
+    // forever. CIMD clients -- what claude.ai actually registers with --
+    // are never written to KV, so they are unaffected by this setting.
+    clientRegistrationTTL: CLIENT_REGISTRATION_TTL_SECONDS,
 
     scopesSupported: [...YOTO_SCOPES],
     resourceMetadata: {
@@ -176,8 +182,10 @@ export default {
   },
 
   /**
-   * Defence in depth for KV TTLs. No cron trigger is configured yet (Phase 6);
-   * grants and tokens already self-expire via their KV TTL.
+   * Nightly at 04:17 UTC (see `[triggers]` in wrangler.toml). Grants and
+   * tokens already self-expire via their own KV TTL; this is defence in
+   * depth -- it also sweeps orphaned grants (client deleted) and orphaned
+   * tokens (grant already gone), which TTL alone does not catch.
    */
   async scheduled(_controller: ScheduledController, env: Env): Promise<void> {
     const result = await getProvider(env).purgeExpiredData(env, { batchSize: 100 });

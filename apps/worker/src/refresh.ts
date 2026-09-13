@@ -100,6 +100,11 @@ export async function tokenExchangeCallback(
 
   if (options.grantType !== GrantType.REFRESH_TOKEN) return undefined;
 
+  // KNOWN LOW-SEVERITY RACE, left unfixed (security review, Sep 2026): two
+  // concurrent refreshes landing here at once can both pass this check and
+  // both rotate the same upstream refresh token; worst case is one extra
+  // re-auth prompt for the parent, never data loss, so it is not worth the
+  // added complexity of a lock for how rarely two refreshes truly overlap.
   if (props.yotoExpiresAt - now > UPSTREAM_REFRESH_SKEW_SECONDS) {
     // Still comfortably valid: re-issue against the existing Yoto token rather
     // than burning a single-use rotating refresh token on every client refresh.

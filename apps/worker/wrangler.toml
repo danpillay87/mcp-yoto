@@ -9,6 +9,13 @@ compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 [observability]
 enabled = true
 
+[triggers]
+# Nightly defence-in-depth purge of expired/orphaned OAuth grants and tokens
+# (see the `scheduled()` export in src/index.ts). Grants and tokens already
+# self-expire via their own KV TTL; this just catches stragglers. 04:17 UTC
+# is off-peak for every timezone this project's parents are likely in.
+crons = ["17 4 * * *"]
+
 [assets]
 directory = "./public"
 binding = "ASSETS"

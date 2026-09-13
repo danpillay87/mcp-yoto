@@ -35,7 +35,7 @@ Once it's connected, just ask in plain English:
 
 ### How sign-in works
 
-You paste one link into your AI app. That takes you to **Yoto's own sign-in page** — you sign in there, not here. We never see your password. Your Yoto tokens are stored encrypted with a key that only your AI app holds, so we cannot read them, even with full access to our own storage. You can revoke access at any time from your Yoto account settings, which disconnects this instantly. See [PRIVACY.md](PRIVACY.md) for the full, plain-English explanation.
+You paste one link into your AI app. That takes you to **Yoto's own sign-in page** — you sign in there, not here. We never see your password. Your Yoto tokens are stored encrypted, and the key is never written to our storage — it's wrapped using your AI app's own token, of which we keep only a hash, so a copy of our database alone decrypts nothing. Two honest caveats: the wrapping method is a fixed constant from the open-source library we use, not a secret unique to this server, so a live client token could decrypt the matching record; and because we run the server, we could in principle change its code to capture tokens in transit. The accurate claim is "nothing readable is stored, and we have no routine means to read it" — not "we are incapable of reading it". You can revoke access at any time from your Yoto account settings, which disconnects this instantly. See [PRIVACY.md](PRIVACY.md) for the full, plain-English explanation.
 
 > 🚧 **Rebuild in progress (Sept 2026).** The command-line version works today; the paste-one-link version for claude.ai / ChatGPT lands in ~2 weeks.
 

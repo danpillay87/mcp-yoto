@@ -4,13 +4,13 @@
 
 ## The short version
 
-We never see your Yoto password. Your Yoto tokens are stored encrypted with a key only your AI client holds — we cannot read them. They expire automatically, and you can revoke access at Yoto any time.
+We never see your Yoto password. Your Yoto tokens are stored encrypted, and the key is never written to our storage — it is wrapped using your AI client's own token, of which we keep only a hash. A copy of our database alone therefore decrypts nothing. Two honest caveats: the wrapping step uses a fixed constant published in the open-source OAuth library we use, not a secret unique to this server, so anyone holding one of your live client tokens could decrypt the matching record; and because we run the server, we could in principle change its code to capture tokens as they pass through. The accurate claim is "nothing readable is stored, and the server has no routine means to read it" — not "we are incapable of reading it". Your Yoto account id is stored in plain text as the label on your grant. Everything expires on its own, and revoking the app at Yoto cuts access immediately.
 
 ## How sign-in actually works
 
 1. You paste the connect link into your AI client (claude.ai, ChatGPT, Cursor, etc.).
 2. Your client redirects you to **Yoto's own login page** — `login.yotoplay.com`. You sign in there, on Yoto's site, with Yoto's own consent screen. `mcp-yoto` never sees your password, and never renders its own login page.
-3. Yoto hands back a token. It is encrypted before it is stored, using a key derived from your AI client's own credentials — not anything `mcp-yoto` holds. In practice, this means the operator of this server cannot decrypt your Yoto token, even with full access to the server's storage.
+3. Yoto hands back a token. It's encrypted before it's stored, and the key is never written to our storage — it's wrapped using your AI client's own token, of which we keep only a hash, so a copy of our database alone decrypts nothing. That's not quite the same as us being incapable of reading it: see "The short version" above for the two honest caveats (the wrapping method isn't deployment-specific, and we do operate the code) and `SECURITY.md` for the technical detail.
 4. Every time your AI client makes a request, the request itself supplies what's needed to decrypt your token for that one call, use it against the Yoto API, and then discard it. Nothing is held in memory longer than the request.
 5. Your access naturally expires when Yoto's refresh token would expire, and you can revoke it immediately from your Yoto account settings at any time — that instantly disconnects `mcp-yoto`.
 

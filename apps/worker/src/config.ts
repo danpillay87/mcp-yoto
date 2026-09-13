@@ -70,6 +70,15 @@ export const RESOURCE_SCOPES: string[] = YOTO_SCOPES.filter((s) => s !== "offlin
 export const ACCESS_TOKEN_TTL_SECONDS = 55 * 60;
 /** Grant/refresh lifetime. Grants carry a matching KV TTL, so they self-expire. */
 export const REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
+/**
+ * How long a dynamically-registered client (DCR, `client:*` KV keys) stays
+ * valid before the provider expires it. Security-review recommendation
+ * (MEDIUM): without this, a DCR client registered once lives forever. Clients
+ * that connect via CIMD (client_id_metadata_document -- what claude.ai
+ * actually uses) are never stored in KV at all, so this TTL does not apply to
+ * them; only genuine DCR registrations age out.
+ */
+export const CLIENT_REGISTRATION_TTL_SECONDS = 30 * 24 * 60 * 60;
 /** The provider rejects any access-token TTL below this (KV minimum). */
 export const MIN_ACCESS_TOKEN_TTL_SECONDS = 60;
 /** How long an in-flight `state` blob stays valid. */

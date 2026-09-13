@@ -1049,3 +1049,148 @@ describe("remote media resolution (resolve.ts)", () => {
     expect(body.result?.structuredContent).toMatchObject({ mediaId: FAKE_ICON_MEDIA_ID });
   });
 });
+
+describe("scheduled purge (nightly cron)", () => {
+  /**
+   * Security-review recommendation (MEDIUM): a `[triggers] crons` entry in
+   * wrangler.toml now fires the exported `scheduled()` handler, which calls
+   * the provider's `purgeExpiredData`. Miniflare can dispatch a real scheduled
+   * event -- not just a direct function call -- via its reserved
+   * `/cdn-cgi/local/scheduled` test route (see `handleScheduled` in
+   * miniflare's entry worker), gated behind the shared-options flag
+   * `unsafeTriggerHandlers: true`. That flag lives on the options object
+   * alongside `workers: [...]`, not inside the per-worker entry -- confirmed
+   * against `V4SharedOptions` in miniflare's own `index.d.ts`.
+   *
+   * This exercises the real end-to-end wiring (cron config's shape is not
+   * actually checked by the test hook, only the exported handler is invoked)
+   * plus proves the purge leaves a just-created, still-valid grant alone: the
+   * access token from a real sign-in keeps working immediately afterwards.
+   */
+  it("runs via the cron test hook and does not disturb a live grant", async () => {
+    const landing = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+    const upstream: UpstreamCall[] = [];
+    const scheduledMf = new Miniflare(
+      convertV4MiniflareOptions({
+        unsafeTriggerHandlers: true,
+        workers: [
+          {
+            name: "mcp-yoto-scheduled",
+            modules: true,
+            scriptPath: BUNDLE,
+            compatibilityDate: "2026-09-13",
+            compatibilityFlags: ["nodejs_compat", "global_fetch_strictly_public"],
+            kvNamespaces: ["OAUTH_KV"],
+            bindings: {
+              ISSUER,
+              YOTO_CLIENT_ID: "yoto-remote-app",
+              STATE_SECRET,
+              YOTO_AUTH_BASE,
+              YOTO_AUDIENCE,
+              LOG_LEVEL: "error",
+            },
+            serviceBindings: {
+              ASSETS: async () => new Response(landing),
+            },
+            outboundService: async (request: Request) => {
+              upstream.push({
+                url: request.url,
+                params: Object.fromEntries(new URLSearchParams(await request.text())),
+              });
+              return tokenResponse();
+            },
+          },
+        ],
+      }),
+    );
+
+    try {
+      // A real grant, created the same way a parent's sign-in would be, so
+      // the purge has something live in KV that it must correctly leave
+      // alone (neither expired nor orphaned).
+      const register = await scheduledMf.dispatchFetch(`${ISSUER}/register`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          client_name: "Scheduled-purge test client",
+          redirect_uris: [CLIENT_REDIRECT],
+          token_endpoint_auth_method: "none",
+          grant_types: ["authorization_code", "refresh_token"],
+          response_types: ["code"],
+        }),
+      });
+      const { client_id: clientId } = (await register.json()) as { client_id: string };
+      const { verifier, challenge } = pkcePair();
+      const authorize = await scheduledMf.dispatchFetch(
+        `${ISSUER}/authorize?${new URLSearchParams({
+          response_type: "code",
+          client_id: clientId,
+          redirect_uri: CLIENT_REDIRECT,
+          state: "s",
+          code_challenge: challenge,
+          code_challenge_method: "S256",
+        }).toString()}`,
+        { redirect: "manual" },
+      );
+      const state =
+        new URL(authorize.headers.get("location") ?? "").searchParams.get("state") ?? "";
+      const callback = await scheduledMf.dispatchFetch(
+        `${ISSUER}/callback?code=yoto-auth-code&state=${encodeURIComponent(state)}`,
+        { redirect: "manual" },
+      );
+      expect(callback.status).toBe(302);
+      const code = new URL(callback.headers.get("location") ?? "").searchParams.get("code") ?? "";
+
+      const tokenResponseRaw = await scheduledMf.dispatchFetch(`${ISSUER}/token`, {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "authorization_code",
+          code,
+          client_id: clientId,
+          code_verifier: verifier,
+          redirect_uri: CLIENT_REDIRECT,
+        }).toString(),
+      });
+      expect(tokenResponseRaw.status).toBe(200);
+      const { access_token: accessToken } = (await tokenResponseRaw.json()) as {
+        access_token: string;
+      };
+      // /callback exchanges the code with Yoto once; the later /token call re-issues our
+      // own token from the already-fetched props without going back to Yoto (see
+      // tokenExchangeCallback's AUTHORIZATION_CODE branch in refresh.ts).
+      expect(upstream).toHaveLength(1);
+
+      // The actual cron test hook. `cron` need not match wrangler.toml's
+      // schedule -- the hook just invokes the exported handler directly.
+      const scheduled = await scheduledMf.dispatchFetch(
+        `${ISSUER}/cdn-cgi/local/scheduled?cron=${encodeURIComponent("17 4 * * *")}&format=json`,
+      );
+      expect(scheduled.status).toBe(200);
+      const outcome = (await scheduled.json()) as { outcome: string };
+      expect(outcome.outcome).toBe("ok");
+
+      // The grant just created must survive: it is neither expired nor
+      // orphaned, so the purge must not have touched it.
+      const statusCall = await scheduledMf.dispatchFetch(`${ISSUER}/mcp`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json, text/event-stream",
+          authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name: "yoto_status", arguments: {} },
+        }),
+      });
+      const statusBody = await parseMcpResponse(statusCall as unknown as Response);
+      expect(statusBody.result?.isError).toBeFalsy();
+      expect(statusBody.result?.structuredContent).toMatchObject({ signedIn: true });
+    } finally {
+      await scheduledMf.dispose();
+    }
+  });
+});
