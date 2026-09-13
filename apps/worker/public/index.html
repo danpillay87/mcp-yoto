@@ -78,16 +78,51 @@
         padding: 0.6rem 1.1rem;
         text-decoration: none;
       }
+      .url-row {
+        align-items: stretch;
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+      }
       input.url {
         background: transparent;
         border: 1px solid var(--line);
         border-radius: 6px;
         color: var(--ink);
+        flex: 1;
         font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
         font-size: 0.9rem;
-        margin-top: 0.75rem;
+        min-width: 0;
         padding: 0.55rem 0.65rem;
-        width: 100%;
+      }
+      button.copy {
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--ink);
+        cursor: pointer;
+        font: inherit;
+        font-size: 0.85rem;
+        padding: 0.55rem 0.85rem;
+      }
+      button.copy:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      ul.connect-list {
+        margin: 0.85rem 0 0;
+        padding-left: 1.25rem;
+      }
+      ul.connect-list li {
+        margin-bottom: 0.4rem;
+      }
+      ul.connect-list code {
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 0.85em;
+        padding: 0.05rem 0.3rem;
       }
       footer {
         border-top: 1px solid var(--line);
@@ -135,17 +170,30 @@
           >Add to Claude</a
         >
       </p>
-      <p class="note">
-        For any other app, paste this address where it asks for a custom connector or remote MCP
-        server URL:
-      </p>
-      <input
-        class="url"
-        type="text"
-        readonly
-        aria-label="Server address to paste into your AI app"
-        value="__MCP_URL__"
-      />
+      <p class="note">Or use this address directly:</p>
+      <div class="url-row">
+        <input
+          class="url"
+          id="connector-url"
+          type="text"
+          readonly
+          aria-label="Server address to paste into your AI app"
+          value="__MCP_URL__"
+        />
+        <button class="copy" id="copy-url" type="button">Copy</button>
+      </div>
+      <ul class="connect-list">
+        <li><strong>Claude</strong> &mdash; the button above, or paste the address into Settings &rarr; Connectors &rarr; Add custom connector.</li>
+        <li>
+          <strong>ChatGPT</strong> &mdash; Settings &rarr; Connectors &rarr; Advanced &rarr;
+          Developer mode, then add the address above.
+        </li>
+        <li><strong>Claude Code</strong> &mdash; <code>claude mcp add --transport http yoto __MCP_URL__</code></li>
+        <li>
+          <strong>Any other app</strong> &mdash; paste the address above wherever it asks for a
+          custom connector or remote MCP server URL.
+        </li>
+      </ul>
     </div>
 
     <h2>Before you connect</h2>
@@ -167,5 +215,27 @@
       &middot;
       <span>__ISSUER__</span>
     </footer>
+
+    <script>
+      (() => {
+        const button = document.getElementById("copy-url");
+        const input = document.getElementById("connector-url");
+        if (!button || !input) return;
+        button.addEventListener("click", () => {
+          navigator.clipboard.writeText(input.value).then(
+            () => {
+              const original = button.textContent;
+              button.textContent = "Copied";
+              setTimeout(() => {
+                button.textContent = original;
+              }, 1500);
+            },
+            () => {
+              input.select();
+            },
+          );
+        });
+      })();
+    </script>
   </body>
 </html>

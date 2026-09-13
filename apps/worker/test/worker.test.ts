@@ -24,10 +24,13 @@ const BUNDLE = fileURLToPath(new URL("../.wrangler/test-dist/index.js", import.m
 const WRANGLER = fileURLToPath(
   new URL("../../../node_modules/wrangler/bin/wrangler.js", import.meta.url),
 );
+const PUBLIC_DIR = fileURLToPath(new URL("../public/", import.meta.url));
 
 const ISSUER = "https://mcp-yoto.test";
 const YOTO_AUTH_BASE = "https://login.yotoplay.test";
 const YOTO_AUDIENCE = "https://api.yotoplay.test";
+const MEDIA_ORIGIN = "https://media.test";
+const UPLOAD_ORIGIN = "https://uploads.test";
 const STATE_SECRET = "0123456789abcdef0123456789abcdef";
 const CLIENT_REDIRECT = "https://client.test/callback";
 const YOTO_SUBJECT = "auth0|test-parent";
@@ -35,6 +38,31 @@ const YOTO_SUBJECT = "auth0|test-parent";
 /** Distinctive fakes, so the KV dump assertions cannot pass by accident. */
 const FAKE_ACCESS_MARKER = "FAKE-YOTO-ACCESS-TOKEN-MARKER";
 const FAKE_REFRESH_TOKEN = "FAKE-YOTO-REFRESH-TOKEN-MARKER";
+
+/** A minimal, real (per `sniffAudio`) MP3 -- "ID3" magic bytes plus filler. */
+const FAKE_MP3_BYTES = new Uint8Array([
+  0x49,
+  0x44,
+  0x33,
+  0x03,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  0x00,
+  ...Array.from("FAKE-AUDIO-PAYLOAD-FOR-TESTS", (c) => c.charCodeAt(0)),
+]);
+/** Plain text -- recognisable by NEITHER `sniffAudio` nor `sniffImage`. */
+const FAKE_TEXT_BYTES = new TextEncoder().encode("just some plain text, not audio at all");
+/** A minimal real (per `sniffImage`) PNG -- the 8-byte magic header plus filler. */
+const FAKE_PNG_BYTES = new Uint8Array([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x00,
+]);
+
+const FAKE_UPLOAD_ID = "upload-1";
+const FAKE_TRANSCODED_SHA = "deadbeefcafef00d";
+const FAKE_ICON_MEDIA_ID = "icon-media-1";
 
 function base64Url(value: object | string): string {
   const text = typeof value === "string" ? value : JSON.stringify(value);
@@ -74,7 +102,113 @@ function tokenResponse(
   return Response.json(body);
 }
 
+/** GET /content/mine's fake response -- mutated per-test where it matters. */
+let fakeCards: Array<{ cardId: string; title: string }> = [
+  { cardId: "card-1", title: "Test Card" },
+];
+
+/** Fake remote media host, keyed by pathname -- serves both HEAD and GET. */
+const mediaFiles: Record<string, { bytes: Uint8Array; contentType: string }> = {
+  "/track.mp3": { bytes: FAKE_MP3_BYTES, contentType: "audio/mpeg" },
+  "/notes.txt": { bytes: FAKE_TEXT_BYTES, contentType: "text/plain" },
+  "/icon.png": { bytes: FAKE_PNG_BYTES, contentType: "image/png" },
+};
+
+interface UploadPutCall {
+  url: string;
+  contentType: string | null;
+  bytes: Uint8Array;
+}
+const uploadPutCalls: UploadPutCall[] = [];
+
+/**
+ * Everything this Worker fetches that ISN'T the Yoto OAuth token endpoint:
+ * the Yoto REST API (content list, upload-url, transcode-status) and the
+ * fake remote media/upload hosts `resolve.ts` and `uploadAudio()` talk to.
+ * A path this router doesn't recognise 404s loudly rather than silently
+ * "working", so an unexpected outbound call is never mistaken for success.
+ */
+async function fakeYotoApiAndMedia(request: Request, url: URL): Promise<Response> {
+  if (
+    url.origin === YOTO_AUDIENCE &&
+    url.pathname === "/content/mine" &&
+    request.method === "GET"
+  ) {
+    return Response.json({ cards: fakeCards });
+  }
+  if (
+    url.origin === YOTO_AUDIENCE &&
+    url.pathname === "/media/transcode/audio/uploadUrl" &&
+    request.method === "GET"
+  ) {
+    return Response.json({
+      upload: { uploadId: FAKE_UPLOAD_ID, uploadUrl: `${UPLOAD_ORIGIN}/put/${FAKE_UPLOAD_ID}` },
+    });
+  }
+  if (
+    url.origin === YOTO_AUDIENCE &&
+    url.pathname === `/media/upload/${FAKE_UPLOAD_ID}/transcoded` &&
+    request.method === "GET"
+  ) {
+    return Response.json({
+      transcode: {
+        transcodedSha256: FAKE_TRANSCODED_SHA,
+        transcodedInfo: { duration: 12, fileSize: FAKE_MP3_BYTES.byteLength, format: "mp3" },
+      },
+    });
+  }
+  if (
+    url.origin === YOTO_AUDIENCE &&
+    url.pathname === "/media/displayIcons/user/me/upload" &&
+    request.method === "POST"
+  ) {
+    return Response.json({
+      displayIcon: { mediaId: FAKE_ICON_MEDIA_ID, url: `${MEDIA_ORIGIN}/icon.png` },
+    });
+  }
+  if (url.origin === UPLOAD_ORIGIN && request.method === "PUT") {
+    uploadPutCalls.push({
+      url: request.url,
+      contentType: request.headers.get("content-type"),
+      bytes: new Uint8Array(await request.arrayBuffer()),
+    });
+    return new Response(null, { status: 200 });
+  }
+  if (url.origin === MEDIA_ORIGIN) {
+    const file = mediaFiles[url.pathname];
+    if (!file) return new Response("Not found", { status: 404 });
+    const headers = {
+      "content-type": file.contentType,
+      "content-length": String(file.bytes.byteLength),
+    };
+    if (request.method === "HEAD") return new Response(null, { status: 200, headers });
+    if (request.method === "GET") return new Response(file.bytes, { status: 200, headers });
+  }
+  return new Response(`unhandled fake outbound request: ${request.method} ${request.url}`, {
+    status: 404,
+  });
+}
+
 let mf: Miniflare;
+
+/** Serves real files under apps/worker/public/, matching the real ASSETS binding. */
+function assetsFake(landing: string) {
+  return async (request: Request): Promise<Response> => {
+    const { pathname } = new URL(request.url);
+    if (pathname === "/" || pathname === "/index.html") {
+      return new Response(landing, { headers: { "content-type": "text/html; charset=utf-8" } });
+    }
+    if (pathname.startsWith("/icons/")) {
+      try {
+        const bytes = readFileSync(new URL(`.${pathname}`, `file://${PUBLIC_DIR}`));
+        return new Response(bytes, { headers: { "content-type": "image/png" } });
+      } catch {
+        return new Response("Not found", { status: 404 });
+      }
+    }
+    return new Response("Not found", { status: 404 });
+  };
+}
 
 beforeAll(async () => {
   // Bundle exactly as a deploy would, so the tests exercise the shipped module
@@ -109,17 +243,20 @@ beforeAll(async () => {
             LOG_LEVEL: "error",
           },
           serviceBindings: {
-            ASSETS: async () =>
-              new Response(landing, { headers: { "content-type": "text/html; charset=utf-8" } }),
+            ASSETS: assetsFake(landing),
           },
           outboundService: async (request: Request) => {
-            const body = await request.text();
-            const call: UpstreamCall = {
-              url: request.url,
-              params: Object.fromEntries(new URLSearchParams(body)),
-            };
-            upstreamCalls.push(call);
-            return upstreamResponder(call);
+            const url = new URL(request.url);
+            if (url.origin === YOTO_AUTH_BASE && url.pathname === "/oauth/token") {
+              const body = await request.text();
+              const call: UpstreamCall = {
+                url: request.url,
+                params: Object.fromEntries(new URLSearchParams(body)),
+              };
+              upstreamCalls.push(call);
+              return upstreamResponder(call);
+            }
+            return fakeYotoApiAndMedia(request, url);
           },
         },
       ],
@@ -146,6 +283,70 @@ function postForm(path: string, params: Record<string, string>): Promise<Respons
     body: new URLSearchParams(params).toString(),
     redirect: "manual",
   }) as unknown as Promise<Response>;
+}
+
+interface JsonRpcResponse {
+  jsonrpc: "2.0";
+  id: number | string | null;
+  result?: Record<string, unknown>;
+  error?: { code: number; message: string };
+}
+
+/**
+ * The stateless HTTP handler answers a successful exchange over SSE by
+ * default (`enableJsonResponse` is never set -- see mcp.ts's header comment),
+ * so a real MCP client -- and this test client -- must send
+ * `Accept: application/json, text/event-stream` and parse either shape back:
+ * a plain JSON body for protocol-level rejections that never reach the
+ * transport's message delivery, or one `data: <json>` SSE frame for
+ * everything the connected server actually answered.
+ */
+async function parseMcpResponse(response: Response): Promise<JsonRpcResponse> {
+  const contentType = response.headers.get("content-type") ?? "";
+  const text = await response.text();
+  if (contentType.includes("application/json")) {
+    return JSON.parse(text) as JsonRpcResponse;
+  }
+  const frames = text
+    .split("\n")
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.slice("data:".length).trim())
+    .filter((line) => line.length > 0);
+  const last = frames.at(-1);
+  if (!last) {
+    throw new Error(`No SSE data frame in /mcp response (status ${response.status}): ${text}`);
+  }
+  return JSON.parse(last) as JsonRpcResponse;
+}
+
+/** POSTs one JSON-RPC request to /mcp and returns its parsed response. */
+async function mcpCall(
+  accessToken: string,
+  method: string,
+  params: Record<string, unknown> = {},
+  id: number | string = 1,
+): Promise<{ status: number; response: Response; body: JsonRpcResponse }> {
+  const response = (await mf.dispatchFetch(`${ISSUER}/mcp`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      accept: "application/json, text/event-stream",
+      authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({ jsonrpc: "2.0", id, method, params }),
+  })) as unknown as Response;
+  const body = await parseMcpResponse(response);
+  return { status: response.status, response, body };
+}
+
+/** The real MCP handshake's first call, per the spec every client sends before anything else. */
+async function mcpInitialize(accessToken: string): Promise<JsonRpcResponse> {
+  const { body } = await mcpCall(accessToken, "initialize", {
+    protocolVersion: "2025-06-18",
+    capabilities: {},
+    clientInfo: { name: "worker-test-client", version: "0.0.0" },
+  });
+  return body;
 }
 
 async function registerClient(name = "Test MCP client"): Promise<string> {
@@ -394,13 +595,14 @@ describe("full sign-in", () => {
 
   it("hands the Yoto token to the MCP handler as decrypted props", async () => {
     const session = await signIn();
-    const response = await mf.dispatchFetch(`${ISSUER}/mcp`, {
-      headers: { authorization: `Bearer ${session.accessToken}` },
+    const { status, body } = await mcpCall(session.accessToken, "tools/call", {
+      name: "yoto_status",
+      arguments: {},
     });
-    expect(response.status).toBe(200);
-    const body = (await response.json()) as { ok: boolean; hasProps: boolean };
-    expect(body).toMatchObject({ ok: true, hasProps: true });
-    // The placeholder must never echo the token itself.
+    expect(status).toBe(200);
+    expect(body.result?.isError).toBeFalsy();
+    expect(body.result?.structuredContent).toMatchObject({ signedIn: true, mode: "remote" });
+    // The response must never echo the token itself.
     expect(JSON.stringify(body)).not.toContain(FAKE_ACCESS_MARKER);
   });
 
@@ -567,10 +769,11 @@ describe("refresh", () => {
     // Our token lifetime is pinned under the upstream lifetime (55 min cap).
     expect(body.expires_in).toBeLessThanOrEqual(3300);
 
-    const mcp = await mf.dispatchFetch(`${ISSUER}/mcp`, {
-      headers: { authorization: `Bearer ${body.access_token}` },
+    const status = await mcpCall(body.access_token, "tools/call", {
+      name: "yoto_status",
+      arguments: {},
     });
-    expect(((await mcp.json()) as { hasProps: boolean }).hasProps).toBe(true);
+    expect(status.body.result?.structuredContent).toMatchObject({ signedIn: true });
 
     const { blob } = await dumpKv();
     expect(blob).not.toContain("SECOND-FAKE-ACCESS");
@@ -652,11 +855,197 @@ describe("landing page", () => {
     expect(html).toContain("not made\n      by, endorsed by, or affiliated with Yoto");
   });
 
-  it("ships security headers", async () => {
+  it("spells out all three non-Claude connect options in plain English", async () => {
+    const html = await (await get("/")).text();
+    expect(html).toContain("ChatGPT");
+    expect(html).toContain("Developer mode");
+    expect(html).toContain("Claude Code");
+    expect(html).toContain(`claude mcp add --transport http yoto ${ISSUER}/mcp`);
+  });
+
+  it("ships security headers, including a CSP that allows only its own copy-button script", async () => {
     const response = await get("/");
-    expect(response.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
+    const html = await response.text();
+    const csp = response.headers.get("content-security-policy") ?? "";
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("default-src 'none'");
     expect(response.headers.get("x-content-type-options")).toBe("nosniff");
     expect(response.headers.get("x-frame-options")).toBe("DENY");
     expect(response.headers.get("referrer-policy")).toBe("no-referrer");
+
+    // The CSP's script-src hash must match the SCRIPT THIS RESPONSE ACTUALLY
+    // SHIPPED, byte for byte -- computed independently here (not copied from
+    // html.ts) so this test would fail if the two ever drifted apart.
+    const scriptMatch = /<script>([\s\S]*?)<\/script>/.exec(html);
+    expect(scriptMatch?.[1]).toBeTruthy();
+    const expectedHash = createHash("sha256")
+      .update(scriptMatch?.[1] ?? "", "utf8")
+      .digest("base64");
+    expect(csp).toContain(`script-src 'sha256-${expectedHash}'`);
+  });
+});
+
+describe("static assets", () => {
+  it("serves an icon PNG for the MCP tools' icons", async () => {
+    const response = await get("/icons/content.png");
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/png");
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    expect(bytes.length).toBeGreaterThan(0);
+    // PNG magic bytes.
+    expect(Array.from(bytes.slice(0, 8))).toEqual([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+  });
+
+  it("404s an unknown icon", async () => {
+    const response = await get("/icons/does-not-exist.png");
+    expect(response.status).toBe(404);
+  });
+});
+
+describe("MCP protocol over /mcp", () => {
+  it("initializes, then lists exactly 14 fully-annotated tools", async () => {
+    const session = await signIn();
+    const init = await mcpInitialize(session.accessToken);
+    expect(init.error).toBeUndefined();
+
+    const { body } = await mcpCall(session.accessToken, "tools/list", {}, 2);
+    const tools = (body.result?.tools ?? []) as Array<{
+      name: string;
+      icons?: Array<{ src: string; mimeType?: string }>;
+      annotations?: Record<string, boolean>;
+      outputSchema?: { properties?: Record<string, unknown> };
+    }>;
+
+    expect(tools).toHaveLength(14);
+    expect(tools.map((t) => t.name).sort()).toEqual(
+      [
+        "yoto_status",
+        "yoto_sign_in",
+        "yoto_sign_out",
+        "yoto_list_cards",
+        "yoto_get_card",
+        "yoto_create_card",
+        "yoto_update_card",
+        "yoto_delete_card",
+        "yoto_upload_audio",
+        "yoto_add_track",
+        "yoto_search_icons",
+        "yoto_upload_icon",
+        "yoto_list_devices",
+        "yoto_get_device_config",
+      ].sort(),
+    );
+
+    for (const tool of tools) {
+      const icon = tool.icons?.[0];
+      expect(icon?.src.startsWith(`${ISSUER}/icons`)).toBe(true);
+      expect(icon?.mimeType).toBe("image/png");
+      for (const hint of [
+        "readOnlyHint",
+        "destructiveHint",
+        "idempotentHint",
+        "openWorldHint",
+      ] as const) {
+        expect(typeof tool.annotations?.[hint]).toBe("boolean");
+      }
+      expect(Object.keys(tool.outputSchema?.properties ?? {}).length).toBeGreaterThan(0);
+    }
+  });
+
+  it("calls yoto_status and gets remote-mode structured content back", async () => {
+    const session = await signIn();
+    const { body } = await mcpCall(session.accessToken, "tools/call", {
+      name: "yoto_status",
+      arguments: {},
+    });
+    expect(body.result?.isError).toBeFalsy();
+    expect(body.result?.structuredContent).toMatchObject({
+      signedIn: true,
+      mode: "remote",
+      tokenStore: "remote",
+    });
+  });
+
+  it("calls yoto_list_cards against the fake Yoto API", async () => {
+    fakeCards = [{ cardId: "card-42", title: "Bedtime Stories" }];
+    const session = await signIn();
+    const { body } = await mcpCall(session.accessToken, "tools/call", {
+      name: "yoto_list_cards",
+      arguments: {},
+    });
+    expect(body.result?.isError).toBeFalsy();
+    expect(body.result?.structuredContent).toMatchObject({
+      source: "myo",
+      cards: [{ cardId: "card-42", title: "Bedtime Stories" }],
+    });
+  });
+});
+
+describe("remote media resolution (resolve.ts)", () => {
+  it("uploads a real audio URL: reaches the fake upload URL and returns a yoto:# ref", async () => {
+    uploadPutCalls.length = 0;
+    const session = await signIn();
+    const { body } = await mcpCall(session.accessToken, "tools/call", {
+      name: "yoto_upload_audio",
+      arguments: { audioUrl: `${MEDIA_ORIGIN}/track.mp3` },
+    });
+
+    expect(body.result?.isError).toBeFalsy();
+    expect(body.result?.structuredContent).toMatchObject({
+      mediaRef: `yoto:#${FAKE_TRANSCODED_SHA}`,
+    });
+    expect(uploadPutCalls).toHaveLength(1);
+    expect(uploadPutCalls[0]?.url).toBe(`${UPLOAD_ORIGIN}/put/${FAKE_UPLOAD_ID}`);
+    expect(Array.from(uploadPutCalls[0]?.bytes ?? [])).toEqual(Array.from(FAKE_MP3_BYTES));
+  });
+
+  it("rejects a .txt body as INVALID_AUDIO before any Yoto call", async () => {
+    uploadPutCalls.length = 0;
+    upstreamCalls.length = 0;
+    const session = await signIn();
+    const { body } = await mcpCall(session.accessToken, "tools/call", {
+      name: "yoto_upload_audio",
+      arguments: { audioUrl: `${MEDIA_ORIGIN}/notes.txt` },
+    });
+
+    expect(body.result?.isError).toBe(true);
+    expect(body.result?.structuredContent).toMatchObject({ code: "INVALID_AUDIO" });
+    expect(uploadPutCalls).toHaveLength(0);
+  });
+
+  it("rejects a link-local address without ever reaching the network", async () => {
+    uploadPutCalls.length = 0;
+    const session = await signIn();
+
+    // The literal case from the plan's verification checklist: a plain http://
+    // URL is already refused by the tool's own https-only input schema.
+    const httpAttempt = await mcpCall(session.accessToken, "tools/call", {
+      name: "yoto_upload_audio",
+      arguments: { audioUrl: "http://169.254.169.254/x" },
+    });
+    const httpRejected =
+      httpAttempt.body.error !== undefined || httpAttempt.body.result?.isError === true;
+    expect(httpRejected).toBe(true);
+
+    // resolve.ts's own guard: an https:// URL that is still a blocked
+    // (link-local / cloud-metadata) address must be rejected by OUR code.
+    const httpsAttempt = await mcpCall(session.accessToken, "tools/call", {
+      name: "yoto_upload_audio",
+      arguments: { audioUrl: "https://169.254.169.254/x" },
+    });
+    expect(httpsAttempt.body.result?.isError).toBe(true);
+    expect(httpsAttempt.body.result?.structuredContent).toMatchObject({ code: "VALIDATION" });
+
+    expect(uploadPutCalls).toHaveLength(0);
+  });
+
+  it("uploads a real icon URL via resolveImage", async () => {
+    const session = await signIn();
+    const { body } = await mcpCall(session.accessToken, "tools/call", {
+      name: "yoto_upload_icon",
+      arguments: { imageUrl: `${MEDIA_ORIGIN}/icon.png`, title: "Test Icon" },
+    });
+    expect(body.result?.isError).toBeFalsy();
+    expect(body.result?.structuredContent).toMatchObject({ mediaId: FAKE_ICON_MEDIA_ID });
   });
 });

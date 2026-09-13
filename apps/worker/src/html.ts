@@ -21,13 +21,50 @@ export const SECURITY_HEADERS: Record<string, string> = {
   "strict-transport-security": "max-age=63072000; includeSubDomains",
 };
 
-export function withSecurityHeaders(response: Response, cacheControl = "no-store"): Response {
+export function withSecurityHeaders(
+  response: Response,
+  cacheControl = "no-store",
+  options: { scriptHash?: string } = {},
+): Response {
   const out = new Response(response.body, response);
   for (const [name, value] of Object.entries(SECURITY_HEADERS)) {
     out.headers.set(name, value);
   }
+  if (options.scriptHash) {
+    // `default-src 'none'` still forbids every OTHER script; this allows
+    // exactly the one inline <script> block whose exact bytes hash to this
+    // value (the landing page's copy-to-clipboard button) -- see
+    // `scriptContentHash` below, which derives the hash from the page's own
+    // served bytes so the two can never drift out of sync.
+    out.headers.set(
+      "content-security-policy",
+      `${SECURITY_HEADERS["content-security-policy"]}; script-src 'sha256-${options.scriptHash}'`,
+    );
+  }
   out.headers.set("cache-control", cacheControl);
   return out;
+}
+
+const INLINE_SCRIPT_PATTERN = /<script>([\s\S]*?)<\/script>/;
+
+/**
+ * SHA-256 (base64) of the first bare `<script>...</script>` block's exact
+ * text content, for a CSP `script-src 'sha256-...'` allowlist entry. Computed
+ * from the page's own served HTML rather than a hand-maintained constant, so
+ * editing the script can never silently drift out of sync with the header
+ * that allows it. Returns `undefined` when the page has no such block.
+ */
+export async function scriptContentHash(html: string): Promise<string | undefined> {
+  const match = INLINE_SCRIPT_PATTERN.exec(html);
+  if (!match?.[1]) return undefined;
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(match[1]));
+  return base64(new Uint8Array(digest));
+}
+
+function base64(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
 }
 
 export function escapeHtml(value: string): string {

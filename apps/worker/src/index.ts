@@ -1,11 +1,16 @@
 /**
- * mcp-yoto Cloudflare Worker -- Phase 3: the auth layer.
+ * mcp-yoto Cloudflare Worker -- the auth layer (Phase 3) plus the MCP
+ * endpoint itself (Phase 4).
  *
  * @cloudflare/workers-oauth-provider 0.10.3 is the authorization server the MCP
  * client (claude.ai, ChatGPT, Cursor, ...) talks to. It owns /token, /register,
  * both .well-known documents, PKCE, DCR, CIMD and all of the crypto. We own
  * exactly two routes -- /authorize and /callback -- which hand the parent to
  * Yoto's own login page and bring the resulting Yoto tokens back as `props`.
+ * The provider's `apiRoute` (`/mcp`) is served by `mcpApiHandler` (mcp.ts):
+ * once the provider has validated the caller's bearer token and decrypted
+ * `props`, that handler builds packages/core's 14 tools over the SDK v2
+ * stateless HTTP handler and answers the real MCP protocol.
  *
  * HOW PROPS ARE PROTECTED AT REST (the claim PRIVACY.md makes, stated exactly):
  *
@@ -41,34 +46,14 @@ import {
   REFRESH_TOKEN_TTL_SECONDS,
   RESOURCE_SCOPES,
   YOTO_SCOPES,
-  type YotoProps,
 } from "./config.js";
-import { errorPage, escapeHtml, withSecurityHeaders } from "./html.js";
+import { errorPage, escapeHtml, scriptContentHash, withSecurityHeaders } from "./html.js";
 import { createLogger } from "./log.js";
+import { mcpApiHandler } from "./mcp.js";
 import { rememberEnv, tokenExchangeCallback } from "./refresh.js";
 import { registerUpstreamRoutes } from "./upstream.js";
 
 export type { Env } from "./config.js";
-
-/**
- * PLACEHOLDER for Phase 4, where the MCP TypeScript SDK v2 stateless
- * Streamable HTTP handler replaces the body of this fetch. It exists now only
- * to prove that the provider decrypts `props` and hands them over on a real
- * authenticated request. It reports WHETHER a token arrived and never what it
- * is: the token must not appear in the response, the logs, or anywhere else.
- */
-// Not annotated as ExportedHandler<Env>: that type makes `fetch` optional, and
-// the provider's apiHandler requires it. The inferred literal type has it.
-const mcpHandler = {
-  fetch(_request: Request, _env: Env, ctx: ExecutionContext): Response {
-    const props = (ctx as ExecutionContext & { props?: Partial<YotoProps> }).props;
-    return Response.json({
-      ok: true,
-      phase: "placeholder",
-      hasProps: typeof props?.yotoAccessToken === "string" && props.yotoAccessToken.length > 0,
-    });
-  },
-};
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -85,9 +70,11 @@ app.get("/", async (c) => {
     .replaceAll("__MCP_URL_ENCODED__", encodeURIComponent(`${issuer}/mcp`))
     .replaceAll("__MCP_URL__", escapeHtml(`${issuer}/mcp`))
     .replaceAll("__ISSUER__", escapeHtml(issuer));
+  const scriptHash = await scriptContentHash(html);
   return withSecurityHeaders(
     new Response(html, { headers: { "content-type": "text/html; charset=utf-8" } }),
     "public, max-age=300",
+    { scriptHash },
   );
 });
 
@@ -110,7 +97,7 @@ function createProvider(env: Env): OAuthProvider<Env> {
 
   return new OAuthProvider<Env>({
     apiRoute: "/mcp",
-    apiHandler: mcpHandler,
+    apiHandler: mcpApiHandler,
     defaultHandler,
 
     authorizeEndpoint: "/authorize",
