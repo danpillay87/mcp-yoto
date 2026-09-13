@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 /**
  * Renders the seven tool-group icons (64x64 PNG) into
- * assets/brand/tool-icons/<group>.png, in the same rounded-square /
- * chunky-pixel style and palette as assets/brand/logo.svg.
+ * assets/brand/tool-icons/<group>.png, in the same rounded-square / single
+ * clean glyph style and palette as assets/brand/logo.svg -- smooth shapes,
+ * no pixel blocks.
  *
  * These are a proposal for the placeholder set in apps/worker/public/icons
  * (owned by another agent/session) -- deliberately written outside that
  * folder so it can review and copy them over rather than being overwritten
- * mid-edit. Each glyph is a plain, literal shape (rack, key, card, waveform,
- * grid, player, stacked cards) chosen to avoid the "looks like a toilet"
- * silhouette flagged on the previous placeholder set.
+ * mid-edit. Each glyph is a plain, literal shape (server = three bars, key,
+ * card, waveform, grid of dots, player with two dials, stacked cards) chosen
+ * to avoid the "looks like a toilet" silhouette flagged on the previous
+ * placeholder set.
  *
  * Run: cd scripts/brand && npm install && npm run build:tool-icons
  */
@@ -27,22 +29,18 @@ const { orange, cream, gold } = PALETTE;
 // Each glyph is inner SVG markup only -- the rounded-square orange tile is
 // shared and added once in buildIconSvg().
 const GLYPHS = {
-  // Server rack: three bars, each with a small status light.
+  // Server: three plain horizontal bars, middle one picked out in gold.
   server: `
-    <rect x="12" y="14" width="40" height="8" rx="3" fill="${cream}"/>
-    <rect x="44" y="16" width="4" height="4" rx="1" fill="${gold}"/>
-    <rect x="12" y="28" width="40" height="8" rx="3" fill="${cream}"/>
-    <rect x="44" y="30" width="4" height="4" rx="1" fill="${gold}"/>
-    <rect x="12" y="42" width="40" height="8" rx="3" fill="${cream}"/>
-    <rect x="44" y="44" width="4" height="4" rx="1" fill="${gold}"/>
+    <rect x="12" y="15" width="40" height="9" rx="4.5" fill="${cream}"/>
+    <rect x="12" y="27.5" width="40" height="9" rx="4.5" fill="${gold}"/>
+    <rect x="12" y="40" width="40" height="9" rx="4.5" fill="${cream}"/>
   `,
-  // Key: a ring (punched hole = bg colour), a shaft, two teeth.
+  // Key: a ring (punched hole = bg colour), a shaft, one rounded tooth.
   auth: `
     <circle cx="22" cy="32" r="11" fill="${cream}"/>
     <circle cx="22" cy="32" r="5" fill="${orange}"/>
-    <rect x="30" y="29" width="22" height="6" rx="2" fill="${cream}"/>
-    <rect x="40" y="35" width="6" height="8" rx="1" fill="${cream}"/>
-    <rect x="48" y="35" width="5" height="6" rx="1" fill="${cream}"/>
+    <rect x="30" y="29" width="23" height="6" rx="3" fill="${cream}"/>
+    <rect x="41" y="35" width="8" height="9" rx="3" fill="${cream}"/>
   `,
   // Card: a single flat rounded rect with a circular "window", like a MYO card.
   content: `
@@ -58,12 +56,12 @@ const GLYPHS = {
     <rect x="39" y="17" width="6" height="30" rx="3" fill="${cream}"/>
     <rect x="49" y="23" width="6" height="18" rx="3" fill="${cream}"/>
   `,
-  // Icon grid: 2x2 rounded squares, one picked out in gold.
+  // Icon grid: 2x2 dots, one picked out in gold.
   icons: `
-    <rect x="14" y="14" width="14" height="14" rx="4" fill="${cream}"/>
-    <rect x="36" y="14" width="14" height="14" rx="4" fill="${gold}"/>
-    <rect x="14" y="36" width="14" height="14" rx="4" fill="${cream}"/>
-    <rect x="36" y="36" width="14" height="14" rx="4" fill="${cream}"/>
+    <circle cx="21" cy="21" r="8" fill="${cream}"/>
+    <circle cx="43" cy="21" r="8" fill="${gold}"/>
+    <circle cx="21" cy="43" r="8" fill="${cream}"/>
+    <circle cx="43" cy="43" r="8" fill="${cream}"/>
   `,
   // Player: a rounded-square body with two round dial buttons on the top
   // edge -- the actual silhouette of a Yoto player, not a bowl/seat shape.
@@ -82,7 +80,7 @@ const GLYPHS = {
 
 function buildIconSvg(glyphMarkup) {
   return `<svg width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}" xmlns="http://www.w3.org/2000/svg">
-  <rect x="0" y="0" width="${SIZE}" height="${SIZE}" rx="12" ry="12" fill="${orange}"/>
+  <rect x="0" y="0" width="${SIZE}" height="${SIZE}" rx="16" ry="16" fill="${orange}"/>
   ${glyphMarkup}
 </svg>`;
 }

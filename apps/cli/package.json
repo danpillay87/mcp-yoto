@@ -6,7 +6,7 @@
   "type": "module",
   "license": "MIT",
   "bin": {
-    "mcp-yoto": "./bin/mcp-yoto.mjs"
+    "mcp-yoto": "bin/mcp-yoto.mjs"
   },
   "files": [
     "dist",
