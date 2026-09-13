@@ -1,0 +1,50 @@
+name: Deploy Worker
+
+# Deploys the Cloudflare Worker whenever the Worker itself, or the core
+# package it bundles, changes on main -- plus an on-demand button for a
+# manual redeploy (e.g. after a secret rotation) that doesn't touch either
+# path.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/worker/**"
+      - "packages/core/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check (biome + tsc -b + vitest)
+        run: npm run check
+
+      # Requires two repo secrets Dan sets once -- see CONTRIBUTING.md
+      # "Releasing" for the exact `gh secret set` commands:
+      #   CLOUDFLARE_API_TOKEN    (Edit Cloudflare Workers template, scoped
+      #                            to this account -- minted by hand, pasted
+      #                            in interactively, never in chat)
+      #   CLOUDFLARE_ACCOUNT_ID   (not secret, but kept alongside the token)
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: apps/worker
+          command: deploy

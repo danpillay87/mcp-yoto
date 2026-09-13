@@ -16,7 +16,9 @@
     "format": "biome format --write .",
     "check": "biome ci . && tsc -b && vitest run",
     "changeset": "changeset",
-    "release": "changeset publish"
+    "release": "changeset publish",
+    "version": "changeset version",
+    "release:tag": "node --input-type=commonjs -e \"const v=require('./apps/cli/package.json').version;require('child_process').execSync('git tag v'+v,{stdio:'inherit'});console.log('Tagged v'+v)\""
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.13",

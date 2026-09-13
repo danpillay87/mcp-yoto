@@ -1,0 +1,92 @@
+name: Release
+
+# Fires when a version tag is pushed (created by `npm run release:tag` after
+# `npm run version` has bumped apps/cli's package.json + CHANGELOG via
+# Changesets -- see CONTRIBUTING.md "Releasing"). Publishes apps/cli to npm
+# and cuts a matching GitHub Release.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  id-token: write # required for npm Trusted Publishing (OIDC) + --provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Check (biome + tsc -b + vitest)
+        run: npm run check
+
+      # `npm run check` only runs `tsc -b` at the root, which type-checks and
+      # emits per-file output across the project-reference graph. It does NOT
+      # run apps/cli's own bundling step. apps/cli/dist/main.js has to be the
+      # tsup bundle (see apps/cli/tsup.config.ts) because it inlines the
+      # private, unpublished @mcp-yoto/core workspace package -- without this
+      # step the published tarball would import a package that does not
+      # exist on the npm registry and would fail at runtime for every
+      # consumer. So this step is required before publish, not optional.
+      - name: Build apps/cli (bundles @mcp-yoto/core via tsup)
+        run: npm run build --workspace apps/cli
+
+      # --- npm Trusted Publishing (OIDC) -----------------------------------
+      # There is no NPM_TOKEN secret in this repo on purpose. npm verifies the
+      # GitHub Actions OIDC identity (this repo + this workflow file) against
+      # the trusted publisher configured on the mcp-yoto package's settings
+      # page on npmjs.com.
+      #
+      # UNTIL DAN HAS DONE THE FIRST MANUAL `npm publish` FROM HIS OWN MACHINE
+      # AND THEN ADDED "GitHub Actions" AS A TRUSTED PUBLISHER FOR THIS
+      # PACKAGE (npmjs.com -> package -> Settings -> Trusted Publisher ->
+      # GitHub Actions -> repo danpillay87/mcp-yoto, workflow release.yml),
+      # THIS STEP WILL FAIL (403/404 from the registry). That failure is
+      # expected on every run before that one-time setup is done -- it is not
+      # a bug in this workflow. See CONTRIBUTING.md "Releasing" for the exact
+      # steps.
+      - name: Publish apps/cli to npm (Trusted Publishing / OIDC)
+        run: npm publish --workspace apps/cli --access public --provenance
+
+      - name: Pack tarball for the release
+        working-directory: apps/cli
+        run: npm pack
+
+      - name: Extract CHANGELOG excerpt for this tag
+        shell: bash
+        run: |
+          set -e
+          VERSION="${GITHUB_REF_NAME#v}"
+          CHANGELOG_FILE="apps/cli/CHANGELOG.md"
+          if [ -f "$CHANGELOG_FILE" ] && grep -qF "## ${VERSION}" "$CHANGELOG_FILE"; then
+            awk -v ver="## ${VERSION}" '
+              $0 == ver { found=1; next }
+              found && /^## / { exit }
+              found { print }
+            ' "$CHANGELOG_FILE" > release-notes.md
+          fi
+          if [ ! -s release-notes.md ]; then
+            echo "See [CHANGELOG.md](https://github.com/${GITHUB_REPOSITORY}/blob/main/apps/cli/CHANGELOG.md) for details." > release-notes.md
+          fi
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            apps/cli/*.tgz \
+            --title "${GITHUB_REF_NAME}" \
+            --notes-file release-notes.md

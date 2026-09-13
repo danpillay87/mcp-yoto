@@ -1,0 +1,28 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.danpillay87/mcp-yoto",
+  "description": "MCP server for Yoto: manage cards, tracks, icons and family devices from any MCP client.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/danpillay87/mcp-yoto",
+    "source": "github",
+    "id": "1368635796"
+  },
+  "packages": [
+    {
+      "registry_type": "npm",
+      "registry_base_url": "https://registry.npmjs.org",
+      "identifier": "mcp-yoto",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp-yoto.danpillay87.workers.dev/mcp"
+    }
+  ]
+}
