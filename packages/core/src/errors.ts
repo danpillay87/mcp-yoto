@@ -19,7 +19,8 @@ export type YotoErrorCode =
   | "INVALID_IMAGE"
   | "TRANSCODE_TIMEOUT"
   | "VALIDATION"
-  | "UNSUPPORTED_IN_MODE";
+  | "UNSUPPORTED_IN_MODE"
+  | "PORT_IN_USE";
 
 export interface YotoErrorOptions {
   /** Machine-readable error code. */

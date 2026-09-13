@@ -32,6 +32,17 @@ export interface CreateCliAuthAdapterOptions {
 /** The `AuthAdapter` plus the underlying store, so `main.ts`'s `status`/`logout` subcommands can report its kind directly. */
 export interface CliAuthAdapter extends AuthAdapter {
   readonly tokenStore: TokenStore;
+  /**
+   * Widens the base `AuthAdapter.signIn` opts with a CLI-only hook: called
+   * synchronously with the authorize URL as soon as it's built, before the
+   * loopback callback is ever awaited -- so a caller (main.ts's `login`
+   * command) can print it immediately instead of waiting for sign-in to
+   * finish. Optional and additive; the `yoto_sign_in` tool path never sets it.
+   */
+  signIn?(opts?: {
+    openBrowser?: boolean;
+    onAuthorizeUrl?: (url: string) => void;
+  }): Promise<SignInResult>;
 }
 
 function redirectUri(port: number): string {
@@ -41,7 +52,7 @@ function redirectUri(port: number): string {
 function loopbackErrorToYotoError(error: unknown): YotoError {
   if (error instanceof LoopbackError) {
     if (error.code === "PORT_IN_USE") {
-      return new YotoError(error.message, { code: "VALIDATION", hint: error.hint, cause: error });
+      return new YotoError(error.message, { code: "PORT_IN_USE", hint: error.hint, cause: error });
     }
     if (error.code === "AUTH_TIMEOUT") {
       return new YotoError(error.message, { code: "VALIDATION", hint: error.hint, cause: error });
@@ -69,7 +80,10 @@ export async function createCliAuthAdapter(
     now,
   });
 
-  async function signIn(opts?: { openBrowser?: boolean }): Promise<SignInResult> {
+  async function signIn(opts?: {
+    openBrowser?: boolean;
+    onAuthorizeUrl?: (url: string) => void;
+  }): Promise<SignInResult> {
     const { verifier, challenge } = createPkcePair();
     const state = createState();
     const port = options.config.redirectPort;
@@ -84,6 +98,13 @@ export async function createCliAuthAdapter(
     authorizeUrl.searchParams.set("redirect_uri", redirectUri(port));
     authorizeUrl.searchParams.set("state", state);
     const url = authorizeUrl.toString();
+
+    // Hand the URL to the caller synchronously, before anything below is
+    // awaited -- so a caller who wants to print it (main.ts's `login`
+    // command) can do so immediately, rather than waiting for the loopback
+    // callback to land. The URL carries only a PKCE challenge and a state
+    // nonce, both single-use and non-secret -- safe to print/log.
+    opts?.onAuthorizeUrl?.(url);
 
     // Bind the loopback server BEFORE opening the browser -- a busy port
     // must fail loud, not send the user to a callback URL nothing is

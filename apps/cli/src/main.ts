@@ -80,7 +80,19 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
 
   if (command === "login") {
     if (!auth.signIn) throw new Error("Sign-in isn't available on this connection.");
-    const result = await auth.signIn({ openBrowser: !config.noBrowser });
+    const result = await auth.signIn({
+      openBrowser: !config.noBrowser,
+      // Fires synchronously as soon as the authorize URL is built, well
+      // before the loopback callback ever arrives -- see adapter.ts. With
+      // YOTO_NO_BROWSER=1 (or no default handler registered) this is the
+      // only place the user ever sees the link.
+      onAuthorizeUrl: (url) => {
+        process.stderr.write(
+          "Sign in to Yoto in your browser. If it did not open, use this link:\n",
+        );
+        process.stderr.write(`${url}\n`);
+      },
+    });
     if (result.url) process.stderr.write(`Sign-in URL: ${result.url}\n`);
     process.stderr.write(`${result.message}\n`);
     return;

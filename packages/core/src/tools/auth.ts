@@ -74,7 +74,10 @@ export function createAuthTools(deps: CreateToolsDeps): AnyToolSpec[] {
       url: z.string().optional(),
       message: z.string(),
     }),
-    summary: (output) => output.message,
+    // Include the URL in the tool's text, not just structuredContent.url --
+    // an MCP client typically only renders the text back to the human, and
+    // that's the one thing a headless/no-default-browser box needs to see.
+    summary: (output) => (output.url ? `${output.message}\n\n${output.url}` : output.message),
     handler: async (args) => {
       if (deps.mode === "remote") {
         return {
