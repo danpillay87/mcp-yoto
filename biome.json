@@ -1,0 +1,68 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended"
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["packages/core/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "node:fs": "packages/core must stay runtime-agnostic (fetch + WebCrypto only, so it runs in the Cloudflare Worker and the Node CLI) — no node:* imports here. Node-specific code belongs in apps/cli or apps/worker.",
+                  "node:path": "packages/core must stay runtime-agnostic — no node:* imports here.",
+                  "node:crypto": "packages/core must stay runtime-agnostic — use globalThis.crypto (WebCrypto) instead of node:crypto.",
+                  "node:http": "packages/core must stay runtime-agnostic — no node:* imports here.",
+                  "node:os": "packages/core must stay runtime-agnostic — no node:* imports here.",
+                  "node:child_process": "packages/core must stay runtime-agnostic — no node:* imports here.",
+                  "node:net": "packages/core must stay runtime-agnostic — no node:* imports here.",
+                  "fs": "packages/core must stay runtime-agnostic — no node:* imports here (bare specifiers are banned too, not just the node: prefix).",
+                  "path": "packages/core must stay runtime-agnostic — no node:* imports here.",
+                  "crypto": "packages/core must stay runtime-agnostic — use WebCrypto instead.",
+                  "http": "packages/core must stay runtime-agnostic — no node:* imports here.",
+                  "os": "packages/core must stay runtime-agnostic — no node:* imports here.",
+                  "child_process": "packages/core must stay runtime-agnostic — no node:* imports here."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

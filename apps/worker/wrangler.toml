@@ -1,0 +1,18 @@
+name = "mcp-yoto"
+main = "src/index.ts"
+compatibility_date = "2026-09-13"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+
+[assets]
+directory = "./public"
+
+[[kv_namespaces]]
+binding = "OAUTH_KV"
+id = "REPLACE_ME"
+
+[vars]
+ISSUER = "https://REPLACE_ME"
+
+# Secrets (set via `wrangler secret put <NAME>`, never committed here):
+#   YOTO_CLIENT_ID
+#   YOTO_CLIENT_SECRET

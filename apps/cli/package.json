@@ -1,0 +1,60 @@
+{
+  "name": "mcp-yoto",
+  "version": "0.1.0",
+  "description": "MCP server for Yoto -- connect your Yoto library to Claude, ChatGPT, Cursor and other MCP clients.",
+  "private": false,
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "mcp-yoto": "./bin/mcp-yoto.mjs"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "mcpName": "io.github.danpillay87/mcp-yoto",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danpillay87/mcp-yoto.git",
+    "directory": "apps/cli"
+  },
+  "homepage": "https://github.com/danpillay87/mcp-yoto#readme",
+  "bugs": {
+    "url": "https://github.com/danpillay87/mcp-yoto/issues"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "yoto",
+    "claude",
+    "chatgpt",
+    "audio",
+    "kids",
+    "audiobook"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@mcp-yoto/core": "0.1.0",
+    "@modelcontextprotocol/node": "2.0.0",
+    "@modelcontextprotocol/server": "2.0.0",
+    "zod": "4.6.4"
+  },
+  "optionalDependencies": {
+    "@napi-rs/keyring": "2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.9.2",
+    "tsx": "4.23.13"
+  }
+}

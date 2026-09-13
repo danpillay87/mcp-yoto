@@ -1,0 +1,27 @@
+{
+  "name": "mcp-yoto-monorepo",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "check": "biome ci . && tsc -b && vitest run",
+    "changeset": "changeset",
+    "release": "changeset publish"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.13",
+    "@changesets/cli": "3.0.2",
+    "typescript": "5.9.3",
+    "vitest": "5.0.0"
+  }
+}
