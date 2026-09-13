@@ -1,0 +1,13 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="mcp-yoto mark">
+  <title>mcp-yoto mark</title>
+  <!-- Mark only, transparent background. Same chunky pixel play-triangle as
+       logo.svg, recoloured to the brand orange so it reads on a light page. -->
+  <rect x="160" y="128" width="48"  height="32" rx="9" fill="#FF7A45"/>
+  <rect x="160" y="160" width="96"  height="32" rx="9" fill="#FF7A45"/>
+  <rect x="160" y="192" width="144" height="32" rx="9" fill="#FF7A45"/>
+  <rect x="160" y="224" width="192" height="32" rx="9" fill="#FFC857"/>
+  <rect x="160" y="256" width="192" height="32" rx="9" fill="#FFC857"/>
+  <rect x="160" y="288" width="144" height="32" rx="9" fill="#FF7A45"/>
+  <rect x="160" y="320" width="96"  height="32" rx="9" fill="#FF7A45"/>
+  <rect x="160" y="352" width="48"  height="32" rx="9" fill="#FF7A45"/>
+</svg>

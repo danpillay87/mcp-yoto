@@ -1,10 +1,17 @@
-# mcp-yoto
+<p align="center">
+  <img src="assets/brand/logo-256.png" width="128" alt="mcp-yoto logo" />
+</p>
 
-Works with Yoto — connect your Yoto library to Claude and ChatGPT.
+<h1 align="center">mcp-yoto</h1>
 
-[![npm version](https://img.shields.io/npm/v/mcp-yoto.svg)](https://www.npmjs.com/package/mcp-yoto)
-[![CI](https://github.com/danpillay87/mcp-yoto/actions/workflows/ci.yml/badge.svg)](https://github.com/danpillay87/mcp-yoto/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+<p align="center">Works with Yoto — connect your Yoto library to Claude and ChatGPT.</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/mcp-yoto"><img src="https://img.shields.io/npm/v/mcp-yoto.svg" alt="npm version" /></a>
+  <a href="https://github.com/danpillay87/mcp-yoto/actions/workflows/ci.yml"><img src="https://github.com/danpillay87/mcp-yoto/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT" /></a>
+  <a href="https://github.com/danpillay87/mcp-yoto"><img src="https://img.shields.io/badge/Works%20with-Yoto-FF7A45" alt="Works with Yoto" /></a>
+</p>
 
 ## For parents
 
@@ -16,6 +23,16 @@ What you can do once it's connected:
 - Search and set pixel-art icons for your cards and chapters.
 - Check on your family's Yoto players — see what's connected, without being able to control them remotely.
 
+### What you can say
+
+Once it's connected, just ask in plain English:
+
+- "Make a bedtime card from these three files and give each track a moon icon."
+- "Show me every card in my Yoto library."
+- "Add this new song to the 'Car Songs' card."
+- "Find a pixel-art icon of a dinosaur for chapter two."
+- "Which of my kids' Yoto players are online right now?"
+
 ### How sign-in works
 
 You paste one link into your AI app. That takes you to **Yoto's own sign-in page** — you sign in there, not here. We never see your password. Your Yoto tokens are stored encrypted with a key that only your AI app holds, so we cannot read them, even with full access to our own storage. You can revoke access at any time from your Yoto account settings, which disconnects this instantly. See [PRIVACY.md](PRIVACY.md) for the full, plain-English explanation.
@@ -24,19 +41,28 @@ You paste one link into your AI app. That takes you to **Yoto's own sign-in page
 
 ## For developers
 
-### Install
+### Connect
+
+> 🚧 **Rebuild in progress (September 2026).** The `npx` route below works today. The paste-one-link route for claude.ai and ChatGPT goes live once the website address ships — expected September 2026.
+
+**claude.ai** — [Add the Yoto connector](https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Yoto&connectorUrl=https%3A%2F%2Fmcp-yoto.danpillay87.workers.dev%2Fmcp) (or Settings → Connectors → Add custom connector, prefilled).
+
+**ChatGPT** — Settings → Connectors → Advanced → Developer mode → Add connector → paste `https://mcp-yoto.danpillay87.workers.dev/mcp`.
 
 **Claude Code:**
 
 ```
-claude mcp add yoto -- npx -y mcp-yoto
+claude mcp add --transport http yoto https://mcp-yoto.danpillay87.workers.dev/mcp
 ```
 
-**Cursor:** one-click install link goes live once this package is published to npm — [Add to Cursor](https://cursor.com/) (placeholder).
+**Power users — run it locally today:**
 
-**VS Code:** an "Install in VS Code" badge goes here once this package is published to npm.
+```
+npx -y mcp-yoto
+```
 
-**Remote connector (claude.ai / ChatGPT):** paste `https://mcp-yoto.<your-subdomain>.workers.dev/mcp` — link goes live once the Worker is deployed (Phase 6).
+- **Cursor:** [Add to Cursor](cursor://anysphere.cursor-deeplink/mcp/install?name=yoto&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1jcC15b3RvIl19)
+- **VS Code:** [Install in VS Code](vscode:mcp/install?%7B%22name%22%3A%22yoto%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-yoto%22%5D%7D)
 
 ### Tools
 

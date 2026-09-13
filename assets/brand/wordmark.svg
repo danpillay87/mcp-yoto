@@ -1,0 +1,12 @@
+<svg width="640" height="160" viewBox="0 0 640 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="mcp-yoto wordmark">
+  <title>mcp-yoto</title>
+  <text
+    x="20"
+    y="108"
+    font-family="'Segoe UI Rounded', 'SF Pro Rounded', 'Nunito', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif"
+    font-size="88"
+    font-weight="700"
+    letter-spacing="-2"
+    fill="#2B1F3D"
+  >mcp-<tspan fill="#FF7A45">yoto</tspan></text>
+</svg>
