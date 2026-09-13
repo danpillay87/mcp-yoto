@@ -1,0 +1,35 @@
+# Copy to `.dev.vars` for `wrangler dev`. NEVER commit `.dev.vars`.
+# In production these are set with `wrangler secret put <NAME>` instead, except
+# ISSUER / YOTO_AUTH_BASE / YOTO_AUDIENCE / LOG_LEVEL which live in wrangler.toml [vars].
+
+# The Worker's own public origin, no trailing slash.
+# Deployed:  https://mcp-yoto.danpillay87.workers.dev  (set in wrangler.toml [vars])
+# For `wrangler dev` override it here with the local address wrangler prints, and
+# register that callback URL at Yoto too, or sign-in will bounce.
+ISSUER="http://localhost:8787"
+
+# Client id of the "mcp-yoto" app in the Yoto developer dashboard (the REMOTE
+# one, not the CLI loopback app). The deployed value lives in wrangler.toml
+# [vars]; override it here only when testing against a different Yoto app.
+# Its registered callback URL must be exactly:
+#   https://mcp-yoto.danpillay87.workers.dev/callback
+# (plus http://localhost:8787/callback if you want local sign-in to work).
+# YOTO_CLIENT_ID="b5EYrOsc7ZwobXuzu7PV3GSuNJUydkrh"
+
+# The remote app is a CONFIDENTIAL client, so production has this set as a
+# Worker secret (`wrangler secret put YOTO_CLIENT_SECRET`). When it is present
+# the token exchange authenticates with it; when it is absent the exchange falls
+# back to PKCE alone, which is what a public client would use. Leave it OUT
+# entirely rather than setting it empty.
+# YOTO_CLIENT_SECRET="the-secret-from-the-yoto-dashboard"
+
+# Protects the `state` blob we hand to Yoto (it carries the PKCE verifier, so it
+# is encrypted, not merely signed). Minimum 32 characters of high-entropy random
+# text; rotating it only invalidates sign-ins already in flight, never a grant.
+# Generate one with:  node -e "console.log(crypto.randomUUID()+crypto.randomUUID())"
+STATE_SECRET="replace-me-with-at-least-32-random-characters"
+
+# Optional overrides (defaults shown).
+# YOTO_AUTH_BASE="https://login.yotoplay.com"
+# YOTO_AUDIENCE="https://api.yotoplay.com"
+# LOG_LEVEL="debug"

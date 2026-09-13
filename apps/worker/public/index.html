@@ -3,17 +3,169 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>mcp-yoto</title>
+    <title>mcp-yoto &middot; use your Yoto library from your AI app</title>
+    <meta
+      name="description"
+      content="Connect your Yoto account to Claude, ChatGPT and other AI apps. Independent open-source project."
+    />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --ink: #16161a;
+        --muted: #55555f;
+        --bg: #fbfaf8;
+        --card: #ffffff;
+        --line: #e4e1db;
+        --accent: #2f5d50;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --ink: #ececf1;
+          --muted: #a4a4b0;
+          --bg: #131316;
+          --card: #1b1b20;
+          --line: #2e2e36;
+          --accent: #7fd1b9;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font:
+          16px/1.6 system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+        margin: 0 auto;
+        max-width: 42rem;
+        padding: 3rem 1.25rem 4rem;
+      }
+      h1 {
+        font-size: 1.75rem;
+        margin: 0 0 0.25rem;
+      }
+      h2 {
+        font-size: 1.1rem;
+        margin: 2.25rem 0 0.5rem;
+      }
+      p,
+      li {
+        color: var(--muted);
+      }
+      a {
+        color: var(--accent);
+      }
+      .tagline {
+        color: var(--ink);
+        font-size: 1.05rem;
+        margin-top: 0;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 1rem 1.15rem;
+      }
+      .connect {
+        background: var(--accent);
+        border-radius: 8px;
+        color: var(--bg);
+        display: inline-block;
+        font-weight: 600;
+        padding: 0.6rem 1.1rem;
+        text-decoration: none;
+      }
+      input.url {
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--ink);
+        font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+        font-size: 0.9rem;
+        margin-top: 0.75rem;
+        padding: 0.55rem 0.65rem;
+        width: 100%;
+      }
+      footer {
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 0.9rem;
+        margin-top: 3rem;
+        padding-top: 1rem;
+      }
+      .note {
+        font-size: 0.9rem;
+      }
+    </style>
   </head>
   <body>
     <h1>mcp-yoto</h1>
-    <p>
-      An MCP server for Yoto -- connect your Yoto library to Claude, ChatGPT, and other MCP
-      clients. This is a placeholder landing page; the real connect link and third-party
-      disclosure land in Phase 4.
+    <p class="tagline">
+      Use your Yoto library from Claude, ChatGPT or any other AI app that supports custom
+      connectors &mdash; make a card, add a chapter, upload audio, browse the pixel-art icons,
+      check what is on your players.
     </p>
-    <p>
-      <a href="https://github.com/danpillay87/mcp-yoto">Source on GitHub</a>
+    <p class="note">
+      Works with Yoto. This is an independent, open-source project by a parent; it is not made
+      by, endorsed by, or affiliated with Yoto.
     </p>
+
+    <h2>How signing in works</h2>
+    <p>
+      When you connect, this server sends you straight to Yoto&rsquo;s own login page &mdash; you
+      type your Yoto password on Yoto&rsquo;s site, never here. Yoto then hands back a key that is
+      stored encrypted, locked to your AI app, so the person running this server cannot read it.
+      You can disconnect in your AI app, or remove access at Yoto, whenever you like.
+    </p>
+    <p class="note">
+      It asks only for permission to see and manage your own cards, icons and family library, and
+      to see your players. It never asks for permission to control a player, so it can never
+      start, stop or change what your child is listening to.
+    </p>
+
+    <h2>Connect it</h2>
+    <div class="card">
+      <p>
+        <a
+          class="connect"
+          href="https://claude.ai/customize/connectors?modal=add-custom-connector&amp;connectorName=Yoto&amp;connectorUrl=__MCP_URL_ENCODED__"
+          >Add to Claude</a
+        >
+      </p>
+      <p class="note">
+        For any other app, paste this address where it asks for a custom connector or remote MCP
+        server URL:
+      </p>
+      <input
+        class="url"
+        type="text"
+        readonly
+        aria-label="Server address to paste into your AI app"
+        value="__MCP_URL__"
+      />
+    </div>
+
+    <h2>Before you connect</h2>
+    <ul>
+      <li>You need a Yoto account and at least one Make Your Own card to get the most from it.</li>
+      <li>
+        Uploading audio from a chat app works by web address, not by file &mdash; a chat app has no
+        access to your computer&rsquo;s files.
+      </li>
+      <li>Anything you ask it to change is a real change to your real Yoto account.</li>
+    </ul>
+
+    <footer>
+      <a href="https://github.com/danpillay87/mcp-yoto">Source code</a>
+      &middot;
+      <a href="https://github.com/danpillay87/mcp-yoto/blob/main/PRIVACY.md">Privacy</a>
+      &middot;
+      <a href="https://github.com/danpillay87/mcp-yoto/blob/main/SECURITY.md">Security</a>
+      &middot;
+      <span>__ISSUER__</span>
+    </footer>
   </body>
 </html>

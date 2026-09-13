@@ -1,18 +1,45 @@
 name = "mcp-yoto"
 main = "src/index.ts"
 compatibility_date = "2026-09-13"
+# global_fetch_strictly_public is REQUIRED for Client ID Metadata Documents:
+# without it the provider refuses to advertise client_id_metadata_document_supported,
+# because the outbound metadata fetch would not be SSRF-safe.
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+
+[observability]
+enabled = true
 
 [assets]
 directory = "./public"
+binding = "ASSETS"
+# Every request reaches the Worker first. The landing page is a static file with
+# this deployment's own URLs substituted in at request time, so it must not be
+# served straight off the asset store with the placeholders still in it.
+run_worker_first = true
+not_found_handling = "none"
 
 [[kv_namespaces]]
 binding = "OAUTH_KV"
-id = "REPLACE_ME"
+id = "907b20901d0f4391b4fd7448e33e70df"
+# Optional: add `preview_id` after `wrangler kv namespace create OAUTH_KV --preview`
+# so `wrangler dev --remote` cannot touch live grants.
 
 [vars]
-ISSUER = "https://REPLACE_ME"
+# The Worker's own public origin, no trailing slash. Changing it later forces
+# every connected client to re-authorize, so it is fixed now.
+# The redirect URI registered at Yoto must be exactly ISSUER + "/callback",
+# i.e. https://mcp-yoto.danpillay87.workers.dev/callback
+ISSUER = "https://mcp-yoto.danpillay87.workers.dev"
+# Public identifier of the "mcp-yoto" remote app in the Yoto developer
+# dashboard. Public by design (it travels in every authorize URL); the matching
+# YOTO_CLIENT_SECRET is a Worker secret and is never in this file.
+YOTO_CLIENT_ID = "b5EYrOsc7ZwobXuzu7PV3GSuNJUydkrh"
+YOTO_AUTH_BASE = "https://login.yotoplay.com"
+YOTO_AUDIENCE = "https://api.yotoplay.com"
+LOG_LEVEL = "info"
 
-# Secrets (set via `wrangler secret put <NAME>`, never committed here):
+# Secrets (set with `wrangler secret put <NAME>`, or .dev.vars locally --
+# never committed). See .dev.vars.example for what each one is.
 #   YOTO_CLIENT_ID
-#   YOTO_CLIENT_SECRET
+#   YOTO_CLIENT_SECRET   (only if the Yoto dev app is a confidential client)
+#   STATE_SECRET
