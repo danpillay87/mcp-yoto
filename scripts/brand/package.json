@@ -5,9 +5,10 @@
   "description": "Self-contained rasterizer for assets/brand/*.svg. Not part of the workspace build -- run directly with npm install && npm run build inside this folder.",
   "type": "module",
   "scripts": {
-    "build": "node rasterize.mjs && node tool-icons.mjs",
+    "build": "node rasterize.mjs && node tool-icons.mjs && node banner.mjs",
     "build:logo": "node rasterize.mjs",
-    "build:tool-icons": "node tool-icons.mjs"
+    "build:tool-icons": "node tool-icons.mjs",
+    "build:banner": "node banner.mjs"
   },
   "dependencies": {
     "@resvg/resvg-js": "2.6.2"

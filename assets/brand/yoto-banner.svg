@@ -1,0 +1,27 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="mcp-yoto banner">
+  <title>mcp-yoto — Works with Yoto</title>
+  <!-- Yoto verification banner. Same visual language as social-preview.png:
+       cream page, single rounded-square/play-triangle mark on the left,
+       wordmark + tagline on the right. Flat colours only, generous
+       whitespace, no pixel blocks. Source of truth for
+       yoto-banner-1600x900.png (see scripts/brand/banner.mjs). -->
+  <rect x="0" y="0" width="1600" height="900" fill="#FFF3E3"/>
+
+  <!-- Mark: identical rounded square + play-triangle as logo.svg, scaled
+       into place via viewBox rather than hand-rescaled coordinates. -->
+  <svg x="120" y="225" width="450" height="450" viewBox="0 0 512 512">
+    <rect x="0" y="0" width="512" height="512" rx="128" ry="128" fill="#FF7A45"/>
+    <path
+      d="M192,180 L192,332 Q192,384 236.3,356.7 L355.7,283.3 Q400,256 355.7,228.7 L236.3,155.3 Q192,128 192,180 Z"
+      fill="#FFF3E3"
+    />
+  </svg>
+
+  <!-- Wordmark + tagline, right of the mark. -->
+  <text x="650" y="380" font-family="'Segoe UI Rounded', 'SF Pro Rounded', 'Nunito', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif" font-size="100" font-weight="700" letter-spacing="-2" fill="#2B1F3D">mcp-<tspan fill="#FF7A45">yoto</tspan></text>
+  <text x="650" y="458" font-family="'Segoe UI Rounded', 'SF Pro Rounded', 'Nunito', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif" font-size="48" font-weight="700" fill="#FF7A45">Works with Yoto</text>
+  <text x="650" y="534" font-family="'Segoe UI Rounded', 'SF Pro Rounded', 'Nunito', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif" font-size="32" font-weight="400" fill="#2B1F3D">Connect your Yoto library to Claude and ChatGPT.</text>
+
+  <!-- Fine print, same muted-plum "not affiliated" note as the social card. -->
+  <text x="650" y="788" font-family="'Segoe UI Rounded', 'SF Pro Rounded', 'Nunito', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif" font-size="26" font-weight="400" fill="#8A7F91">Independent, open-source &#8212; not affiliated with Yoto</text>
+</svg>
