@@ -7,7 +7,10 @@
     "build": "tsc -b",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "test": "vitest run"
+    "test": "vitest run",
+    "kv:list": "wrangler kv key list --binding OAUTH_KV --remote",
+    "kv:get": "wrangler kv key get --binding OAUTH_KV --remote",
+    "tail": "wrangler tail mcp-yoto --format json"
   },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "0.10.3",

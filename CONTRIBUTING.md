@@ -17,6 +17,13 @@ Requires Node >=22 (see `.nvmrc`).
 - `apps/worker` — the remote MCP server (Cloudflare Worker, OAuth via `@cloudflare/workers-oauth-provider`).
 - `apps/cli` — the `npx mcp-yoto` local stdio server, published to npm.
 
+## Operating
+
+`apps/worker` has a few `wrangler` helper scripts for looking at the live Worker: `npm run kv:list` / `npm run kv:get` (read the OAuth KV store) and `npm run tail` (stream live logs). Two things to know:
+
+- Wrangler v4's `kv key list` / `kv key get` default to **local** (simulated) state, not the deployed store — that's why these scripts always pass `--remote`. Leave that flag on if you add more KV commands, or you'll be reading an empty local sandbox and think the store is broken.
+- `wrangler tail` is a live stream — redirect it to a file (`npm run tail > tail.log`), don't pipe it into another command (`| grep ...`), which tends to buffer and drop lines.
+
 ## Pull requests
 
 - Keep changes scoped and include a test where it makes sense.

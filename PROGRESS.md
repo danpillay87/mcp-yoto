@@ -1,40 +1,27 @@
 # Progress
 
-Plain-English status of the mcp-yoto rebuild. ✅ done · ⏳ in progress · 🔴 needs Dan.
+Plain-English status of the mcp-yoto rebuild, as of 13 Sep 2026 21:45. ✅ done · ⏳ in progress · 🔴 needs Dan.
 
-- ✅ **The project is public and set up properly.** It has its own page on GitHub with tests that run automatically on every change.
-- ✅ **Posted about it publicly.** Told the people who make Yoto's own developer tools about the project, asking for a test device ahead of their next product launch.
-- ✅ **Listed on Yoto's own dashboard.** It has a description and a link to the privacy explanation there. Still needs a proper logo image adding to that listing.
-- ✅ **All 14 things it can do are built and tested.** Listing your cards, building a new card, adding a track, setting a pixel-art icon, checking your players — 227 separate automatic checks run against all of it before anything ships.
-- ✅ **Signing in works for the website version.** A parent can sign in through Yoto's own login page and the site remembers them safely.
-- ✅ **The website version is live** at https://mcp-yoto.danpillay87.workers.dev.
-- ✅ **The command-line version works.** It's signed in on Dan's own computer right now and lists his real cards.
-- ✅ **A dedicated security check has been done**, and it found two gaps that were fixed before anyone outside used this — see below for what that means in practice.
-- ✅ **The plumbing for shipping updates automatically is built** (tests, checks, and a release process), ready for when it's turned on.
-- ✅ **Dan's own computer has been switched over to the new version.** The old always-running background task that used to keep the previous version alive has been removed, and its old files have been safely set aside (not deleted).
-- ⏳ **A simpler, cleaner logo.** The current one needs redoing as one plain shape rather than something more fiddly.
-- 🔴 **Publishing the command-line version properly, for anyone to install.** Dan needs to turn on an extra security step (two-factor login) on the npm publishing website, then run one command to make it official.
-- 🔴 **A real test from Dan's own everyday Claude account** — connecting the website version the exact way a parent would, start to finish. This is the check that actually matters most.
-- 🔴 **Applying to Yoto for their "Verified" badge.** This can only happen once the command-line version is properly published (the step above).
-- ⏳ **Putting the security fixes and the new logo live on the website version.** Small, low-risk, just needs doing.
-- 🔴 **Adding a preview image for the GitHub page**, so it looks right when shared as a link. A short manual step in GitHub's settings.
-- 🔴 **Turning on automatic deployment**, so future updates go live on their own instead of by hand. Needs Dan to hand Cloudflare a key.
-- 🔴 **Turning on Dan's "trusted publisher" status with npm**, which is only possible after the first manual publish (see above).
-
-## What the security check found and fixed
-
-Two medium-priority gaps, both closed before this went in front of anyone outside:
-
-1. A way someone could have redirected the audio/image upload feature to fetch from an address it shouldn't have been able to reach. Closed.
-2. Registered connections that never expired. Now they automatically expire after 30 days, and a small nightly check tidies up anything left behind. This doesn't apply to how most parents will actually connect (claude.ai's own method isn't affected at all).
-
-One small, low-risk timing quirk was found and left alone on purpose: if two sign-in refreshes happen at the exact same moment, the worst that can happen is a parent is asked to sign in again — nothing is lost, and fixing it wasn't worth the extra complexity.
+- ✅ **The project is public, documented, and branded.** It has its own page on GitHub, a proper explanation (README), and its own look and feel.
+- ✅ **Asked Yoto's own developer team for help.** Posted in their Discord asking for a test device ahead of their next product launch.
+- ✅ **Fully listed on Yoto's own dashboard.** Name, description, a link to the privacy explanation, and a proper logo are all in place now.
+- ✅ **Everything it can do is built and tested.** All 14 things it can do — listing your cards, building a new card, adding a track, and so on — with 228 automatic checks that all pass before anything ships.
+- ✅ **The website version is live, has been security-checked, and tidies itself up.** It's running at https://mcp-yoto.danpillay87.workers.dev, a dedicated security review has been done, and a small nightly job cleans up loose ends on its own.
+- ✅ **Proved the whole parent journey actually works, start to finish.** Dan signed in for real through claude.ai's own sign-in page, and a separate testing tool confirmed all 14 things it can do and pulled back his real cards.
+- ✅ **The command-line version is properly published and double-checked.** Version 0.1.0 is out for anyone to install, and it's been tested working from a completely clean computer.
+- ✅ **Dan's own computer is fully switched over to the new version.** The old always-running background task that kept the previous version alive has been removed, and its old files have been safely set aside rather than deleted.
+- ✅ **Updates now go live automatically.** Cloudflare is connected up, so a change pushed to GitHub ships itself.
+- ✅ **The privacy wording is honest and accurate**, not just legally-safe boilerplate.
+- ⏳ **Getting listed on the official MCP Registry.** Waiting on an approval code from GitHub before this can go through.
+- ⏳ **The last few admin bits.** A browser-automation pass is currently working through npm's "trusted publisher" setting, a proper preview image for the GitHub page, and Yoto's "Verified" application form — Dan just needs to press Submit on the Yoto form once it's filled in and ready.
+- 🔴 **Dan: tidy up a wrongly-named setting in Cloudflare.** One of the secret values got saved under itself as the name, instead of a proper label — see "Needs Dan" below for the exact command. Separately, the Yoto client secret has deliberately *not* been changed — that was Dan's call, not something overlooked.
+- 🔴 **Dan: follow up in Discord with the live connect link**, now that the website version is proven to work end to end.
 
 ## Needs Dan
 
-- **Publish the command-line tool to npm.** First turn on two-factor login at https://www.npmjs.com/settings — then, from this project's folder, run: `npm publish --workspace apps/cli --access public --provenance`
-- **Try connecting from your own everyday claude.ai account**, the way a parent actually would: paste `https://mcp-yoto.danpillay87.workers.dev/mcp` into Settings → Connectors → Add custom connector, sign in through Yoto's page, and ask it to list your cards.
-- **Submit the Yoto Verified application** once the npm publish above is done: https://yoto.dev/verify
-- **Upload a GitHub social preview image** at https://github.com/danpillay87/mcp-yoto/settings (scroll to "Social preview").
-- **Give Cloudflare a deploy key** so updates can ship automatically: `gh secret set CLOUDFLARE_API_TOKEN --repo danpillay87/mcp-yoto`
-- **Turn on npm's "trusted publisher" setting** for this package — only possible after the first manual publish above; the option then appears on the package's npm settings page.
+- **Delete the mis-named Cloudflare secret.** From `apps/worker`, run:
+  ```
+  npx wrangler@4.131.1 secret delete <that name> --name mcp-yoto --force
+  ```
+  If you're not sure which one it is, check the list first: `npx wrangler@4.131.1 secret list --name mcp-yoto` (from `apps/worker`).
+- **Follow up on Discord** with the live connect link now the site is proven end to end: https://mcp-yoto.danpillay87.workers.dev/mcp
