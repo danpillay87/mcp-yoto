@@ -495,7 +495,7 @@ describe("/authorize", () => {
     expect(location.searchParams.get("code_challenge_method")).toBe("S256");
     expect(location.searchParams.get("code_challenge")).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(location.searchParams.get("scope")).toBe(
-      "profile offline_access user:content:view user:content:manage user:icons:manage family:library:view family:devices:view family:device-status:view",
+      "profile offline_access user:content:view user:content:manage user:icons:manage family:library:view family:devices:view",
     );
   });
 
