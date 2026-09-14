@@ -268,7 +268,8 @@ describe("yoto_player_status", () => {
       expect(isYotoError(error)).toBe(true);
       if (!isYotoError(error)) throw error;
       expect(error.code).toBe("FORBIDDEN_SCOPE");
-      expect(error.hint).toContain("family:device-status:view");
+      expect(error.hint).toContain("Yoto hasn't yet made the player-status permission available");
+      expect(error.hint).not.toMatch(/sign (out|in)/i);
     }
   });
 

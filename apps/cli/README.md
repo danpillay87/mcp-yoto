@@ -75,10 +75,11 @@ settings, or simply expired). Run `npx mcp-yoto login` again.
 
 ## What this connects to
 
-15 tools, all `yoto_*` — cards, tracks, icons, and read-only device status. Never asks
-for `family:devices:control` or `family:devices:manage`, so this stays eligible for
-Yoto's Verified listing. Full tool table, architecture, and privacy details:
-[github.com/danpillay87/mcp-yoto](https://github.com/danpillay87/mcp-yoto#readme).
+15 tools, all `yoto_*` — cards, tracks, icons, and device status (the live player-status
+check is registered but not switched on yet -- Yoto doesn't grant that permission to
+outside apps yet). Never asks for `family:devices:control` or `family:devices:manage`,
+so this stays eligible for Yoto's Verified listing. Full tool table, architecture, and
+privacy details: [github.com/danpillay87/mcp-yoto](https://github.com/danpillay87/mcp-yoto#readme).
 
 ## License
 

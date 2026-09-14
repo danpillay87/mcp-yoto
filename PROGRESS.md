@@ -21,10 +21,10 @@ Plain-English status of the mcp-yoto rebuild, as of 14 Sep 2026 05:25 BST. ✅ d
 - ✅ **npm publishing from GitHub is confirmed working.** 0.1.1 went out automatically from a tag.
 - 🔴 **Dan: Follow up on Discord with the live connect link.** Reply in the same thread with https://mcp-yoto.danpillay87.workers.dev/mcp.
 - ⏳ **Optional: Rotate the Yoto client secret.** The value was briefly exposed 13 Sep. Dan declined for now, but dashboard.yoto.dev/settings has the option if needed later.
-- ✅ **New: you can now ask what's playing on a player right now.** A 15th thing it can do checks one player live — which card is loaded (by name, not just an ID), battery level, volume, nightlight colour, and whether headphones are plugged in. Built and tested (241 automatic checks now pass). It needed a narrow, read-only Yoto permission this project didn't already have (still nothing that can control a player), so the existing sign-in won't cover it until you sign in again. Asking it to force a fresh check-in isn't possible — Yoto only allows that with a permission this project deliberately never asks for — so it always shows the player's last known status instead.
+- ⏳ **Built and tested, but Yoto won't switch it on yet.** The "see a player's status" check is ready (15th thing it can do, 241 automatic checks pass) but Yoto currently refuses to give outside apps the permission it needs — asking for it actually broke sign-in for a few minutes on 14 Sep before it was pulled. It shows a clear "not available yet" message until Yoto opens it up.
 
 ## Needs Dan
 
 - **Discord follow-up.** Reply in the same thread (mcp-yoto channel) with the live connect link: https://mcp-yoto.danpillay87.workers.dev/mcp.
 - **(Optional) Rotate Yoto client secret** if you want to revoke the one that was exposed briefly on 13 Sep. Available at dashboard.yoto.dev/settings — your choice, no urgency.
-- **Sign in again** (CLI: `npx mcp-yoto login`; remote: reconnect the connector) to pick up the new "see a player's status" permission the new tool above needs — until then it'll ask you to reconnect rather than show real data.
+- **Ask Yoto whether `family:device-status:view` can be granted to third-party apps** — reply in the Discord thread, or check whether dashboard.yoto.dev shows a per-app permissions list for the mcp-yoto app. Until they say yes, v0.2.0 is on hold.

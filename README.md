@@ -22,7 +22,7 @@ What you can do once it's connected:
 - Add tracks to a card you've already made, without opening the Yoto app.
 - Search and set pixel-art icons for your cards and chapters.
 - Check on your family's Yoto players — see what's connected, without being able to control them remotely.
-- Ask what's on a player right now — which card is loaded, battery, volume, nightlight, headphones.
+- Coming when Yoto allows it: ask what's on a player right now — which card is loaded, battery, volume, nightlight, headphones.
 
 ### What you can say
 
@@ -33,7 +33,6 @@ Once it's connected, just ask in plain English:
 - "Add this new song to the 'Car Songs' card."
 - "Find a pixel-art icon of a dinosaur for chapter two."
 - "Which of my kids' Yoto players are online right now?"
-- "What's the kids' player playing right now?"
 
 ### How sign-in works
 
@@ -86,11 +85,11 @@ npx -y mcp-yoto
 | `yoto_upload_icon` | Upload a custom 16×16 icon | `imagePath\|imageUrl`, `title`, `autoConvert?` | no |
 | `yoto_list_devices` | Family players (view only) | – | yes |
 | `yoto_get_device_config` | Device config incl. right-hand-button shortcuts; 403 → friendly `FORBIDDEN_SCOPE` | `deviceId` | yes |
-| `yoto_player_status` | Live status: card, battery, volume, nightlight, headphones; uses a Yoto endpoint marked deprecated (no replacement published yet) | `deviceId?`, `refresh?` | yes |
+| `yoto_player_status` | Live status: card, battery, volume, nightlight, headphones (not yet available — waiting on Yoto); uses a Yoto endpoint marked deprecated (no replacement published yet) | `deviceId?`, `refresh?` | yes |
 
 ### Architecture
 
-One Cloudflare Worker runs the official MCP TypeScript SDK v2 (stateless Streamable HTTP) behind Cloudflare's own `@cloudflare/workers-oauth-provider` — the reference implementation for remote-MCP auth, so this project writes only the small Yoto-specific upstream handler, not its own OAuth server. The same core (Yoto client + tool definitions) also powers `npx mcp-yoto`, a local stdio server for direct use from Claude Code, Cursor, or any stdio-based MCP client. Requested scopes are `profile offline_access user:content:view user:content:manage user:icons:manage family:library:view family:devices:view family:device-status:view` — deliberately **no** `family:devices:control` or `family:devices:manage`, which is what keeps this app eligible for Yoto's Verified listing.
+One Cloudflare Worker runs the official MCP TypeScript SDK v2 (stateless Streamable HTTP) behind Cloudflare's own `@cloudflare/workers-oauth-provider` — the reference implementation for remote-MCP auth, so this project writes only the small Yoto-specific upstream handler, not its own OAuth server. The same core (Yoto client + tool definitions) also powers `npx mcp-yoto`, a local stdio server for direct use from Claude Code, Cursor, or any stdio-based MCP client. Requested scopes are `profile offline_access user:content:view user:content:manage user:icons:manage family:library:view family:devices:view` — deliberately **no** `family:devices:control` or `family:devices:manage`, which is what keeps this app eligible for Yoto's Verified listing. (`family:device-status:view`, needed for the still-registered `yoto_player_status` tool, isn't requested either: a live sign-in attempt with it included was refused outright by Yoto, so it currently can't be granted to third-party apps at all.)
 
 ### Roadmap
 

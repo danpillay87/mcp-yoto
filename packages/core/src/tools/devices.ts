@@ -81,6 +81,8 @@ export function createDeviceTools(deps: CreateToolsDeps): AnyToolSpec[] {
     name: "yoto_player_status",
     title: "Get a Yoto player's live status",
     description:
+      "Not yet available -- Yoto does not currently grant third-party apps the " +
+      "permission this needs; the tool is ready and will work the moment they do. " +
       "Live snapshot of one player: which card (if any) is loaded, battery level, " +
       "volume, nightlight mode, and whether headphones are connected. Uses a Yoto " +
       "endpoint Yoto has marked deprecated (no replacement published yet) -- may stop " +
@@ -199,12 +201,13 @@ export function createDeviceTools(deps: CreateToolsDeps): AnyToolSpec[] {
         status = await getDeviceStatus(deps.client, deviceId);
       } catch (error) {
         if (isYotoError(error) && error.code === "FORBIDDEN_SCOPE") {
-          throw new YotoError("Player status needs a scope this connection doesn't have.", {
+          throw new YotoError("Player status isn't available yet.", {
             code: "FORBIDDEN_SCOPE",
             status: error.status,
             hint:
-              "Yoto's device-status endpoint needs the family:device-status:view " +
-              "permission -- sign out and back in to grant it.",
+              "Yoto hasn't yet made the player-status permission available to apps like " +
+              "this one, so this can't work today -- nothing you do on your side will " +
+              "change that. It will start working as soon as Yoto opens it up.",
           });
         }
         throw error;
