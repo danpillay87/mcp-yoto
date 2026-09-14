@@ -2,7 +2,7 @@
  * apps/worker's real `/mcp` endpoint -- the SDK v2 per-request-factory
  * stateless HTTP handler (`createMcpHandler`, confirmed against
  * node_modules/@modelcontextprotocol/server/dist/createMcpHandler-*.d.mts),
- * wired to packages/core's 14 tools with a "remote" `AuthAdapter` that reads
+ * wired to packages/core's 15 tools with a "remote" `AuthAdapter` that reads
  * the Yoto access token straight out of `ctx.props` -- the plaintext-in-memory
  * value @cloudflare/workers-oauth-provider decrypts per request (see the big
  * comment in index.ts).

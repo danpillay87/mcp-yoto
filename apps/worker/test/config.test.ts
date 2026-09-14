@@ -103,6 +103,7 @@ describe("scopes", () => {
       "user:icons:manage",
       "family:library:view",
       "family:devices:view",
+      "family:device-status:view",
     ]);
   });
 

@@ -1,5 +1,5 @@
 /**
- * Thin, typed wrappers around the Yoto endpoints the 14 tools need. Paths
+ * Thin, typed wrappers around the Yoto endpoints the 15 tools need. Paths
  * and operationIds confirmed against https://yoto.dev/openapi.json
  * (fetched 2026-09-13) except where noted.
  */
@@ -8,12 +8,14 @@ import type { YotoClient } from "./client.js";
 import type {
   Card,
   Device,
+  DeviceStatus,
   FamilyLibraryGroup,
   Icon,
   TranscodedResponse,
   UploadUrlResponse,
 } from "./types.js";
 import {
+  deviceStatusSchema,
   getCardResponseSchema,
   getDeviceConfigResponseSchema,
   listCardsResponseSchema,
@@ -136,6 +138,24 @@ export async function getDeviceConfig(
     schema: getDeviceConfigResponseSchema,
   });
   return result.device?.config ?? {};
+}
+
+/**
+ * GET /device-v2/{deviceId}/status (operationId `getDeviceStatus`) -- scope
+ * `family:device-status:view`. Yoto's openapi.json marks this endpoint
+ * **deprecated**; it's still the only documented way to read a player's live
+ * state (battery, volume, nightlight, card inserted, etc). See
+ * tools/devices.ts (`yoto_player_status`) for the FORBIDDEN_SCOPE handling
+ * and field normalisation, and deviceStatusSchema's doc comment for why
+ * there's no playing/paused field to normalise from.
+ */
+export async function getDeviceStatus(client: YotoClient, deviceId: string): Promise<DeviceStatus> {
+  return client.request({
+    method: "GET",
+    path: `/device-v2/${encodeURIComponent(deviceId)}/status`,
+    schema: deviceStatusSchema,
+    idempotent: true,
+  });
 }
 
 /** GET /card/family/library/groups (operationId `getGroups`) -- scope `family:library:view`. */

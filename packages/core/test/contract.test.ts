@@ -70,6 +70,7 @@ const EXPECTED_TOOL_NAMES = [
   "yoto_upload_icon",
   "yoto_list_devices",
   "yoto_get_device_config",
+  "yoto_player_status",
 ];
 
 describe.each(["cli", "remote"] as const)("mcp-yoto server contract (%s mode)", (mode) => {
@@ -80,11 +81,11 @@ describe.each(["cli", "remote"] as const)("mcp-yoto server contract (%s mode)", 
     return { client, deps };
   }
 
-  it("advertises exactly the 14 yoto_* tools, each fully annotated", async () => {
+  it("advertises exactly the 15 yoto_* tools, each fully annotated", async () => {
     const { client } = await setup();
     const { tools } = await client.request<{ tools: WireTool[] }>("tools/list");
 
-    expect(tools).toHaveLength(14);
+    expect(tools).toHaveLength(15);
     expect(tools.map((t) => t.name).sort()).toEqual([...EXPECTED_TOOL_NAMES].sort());
 
     for (const tool of tools) {

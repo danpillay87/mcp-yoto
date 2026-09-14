@@ -96,6 +96,45 @@ export const getDeviceConfigResponseSchema = z.looseObject({
     .optional(),
 });
 
+/**
+ * `GET /device-v2/{deviceId}/status` (operationId `getDeviceStatus`), scope
+ * `family:device-status:view`. Yoto's own openapi.json marks this endpoint
+ * **deprecated** and documents only this flat field list -- notably no
+ * playback-state field (no `playingStatus`/`isPlaying`), so
+ * `yoto_player_status`'s state normalisation can only distinguish "no card
+ * inserted" from "a card is present" (see tools/devices.ts), not
+ * playing-vs-paused. Every field optional/nullable: a deprecated beta-ish
+ * endpoint that may omit fields per device/firmware.
+ */
+export const deviceStatusSchema = z.looseObject({
+  deviceId: z.string().optional(),
+  activeCard: z.string().nullable().optional(),
+  cardInsertionState: z.number().optional(),
+  batteryLevelPercentage: z.number().optional(),
+  isCharging: z.boolean().optional(),
+  systemVolumePercentage: z.number().optional(),
+  userVolumePercentage: z.number().optional(),
+  nightlightMode: z.string().nullable().optional(),
+  isAudioDeviceConnected: z.boolean().optional(),
+  isBluetoothAudioConnected: z.boolean().optional(),
+  isOnline: z.boolean().optional(),
+  dayMode: z.number().optional(),
+  powerSource: z.number().optional(),
+  wifiStrength: z.number().optional(),
+  networkSsid: z.string().optional(),
+  ambientLightSensorReading: z.number().optional(),
+  temperatureCelcius: z.number().optional(),
+  freeDiskSpaceBytes: z.number().optional(),
+  totalDiskSpaceBytes: z.number().optional(),
+  averageDownloadSpeedBytesSecond: z.number().optional(),
+  isBackgroundDownloadActive: z.boolean().optional(),
+  uptime: z.number().optional(),
+  utcTime: z.string().optional(),
+  utcOffsetSeconds: z.number().optional(),
+  updatedAt: z.string().optional(),
+});
+export type DeviceStatus = z.infer<typeof deviceStatusSchema>;
+
 export const iconSchema = z.looseObject({
   mediaId: z.string(),
   displayIconId: z.string().optional(),

@@ -9,7 +9,7 @@
  * Yoto's own login page and bring the resulting Yoto tokens back as `props`.
  * The provider's `apiRoute` (`/mcp`) is served by `mcpApiHandler` (mcp.ts):
  * once the provider has validated the caller's bearer token and decrypted
- * `props`, that handler builds packages/core's 14 tools over the SDK v2
+ * `props`, that handler builds packages/core's 15 tools over the SDK v2
  * stateless HTTP handler and answers the real MCP protocol.
  *
  * HOW PROPS ARE PROTECTED AT REST (the claim PRIVACY.md makes, stated exactly):

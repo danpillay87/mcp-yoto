@@ -8,6 +8,14 @@ import { z } from "zod";
  * expects a 403 in practice (device config needs `family:devices:manage`)
  * and turns that into a friendly FORBIDDEN_SCOPE result rather than a raw
  * failure -- see tools/devices.ts.
+ *
+ * `family:device-status:view` was added 2026-09-14 for `yoto_player_status`
+ * (GET /device-v2/{deviceId}/status): confirmed against yoto.dev/openapi.json
+ * that this is a *distinct*, narrower read-only scope from
+ * `family:devices:view` (which only covers listing devices) -- not a guess,
+ * and not the control/manage family this server refuses to request. Existing
+ * signed-in sessions (CLI keychain token, remote OAuth grants) won't carry
+ * this new scope until the user signs in again.
  */
 export const YOTO_SCOPES = [
   "profile",
@@ -17,6 +25,7 @@ export const YOTO_SCOPES = [
   "user:icons:manage",
   "family:library:view",
   "family:devices:view",
+  "family:device-status:view",
 ] as const;
 
 export type YotoScope = (typeof YOTO_SCOPES)[number];

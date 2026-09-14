@@ -245,7 +245,7 @@ export class YotoClient {
   }
 
   /**
-   * Generic cursor-pagination helper. None of the 14 tools' endpoints
+   * Generic cursor-pagination helper. None of the 15 tools' endpoints
    * currently paginate (Yoto returns full collections for content/devices/
    * icons), but this keeps the shape ready for the day one does, and is
    * exercised directly in tests.

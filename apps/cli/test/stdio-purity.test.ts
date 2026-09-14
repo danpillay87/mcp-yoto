@@ -84,7 +84,7 @@ describe("stdio purity", () => {
   });
 
   it.skipIf(!existsSync(distEntry))(
-    "stdout carries only JSON-RPC frames (initialize + tools/list, 14 tools); stderr never carries a token-shaped string",
+    "stdout carries only JSON-RPC frames (initialize + tools/list, 15 tools); stderr never carries a token-shaped string",
     async () => {
       tmpDir = await mkdtemp(join(tmpdir(), "mcp-yoto-purity-"));
       const tokenFile = join(tmpDir, "tokens.json");
@@ -140,7 +140,7 @@ describe("stdio purity", () => {
 
       const tools = (toolsResponse.result as { tools: Array<{ name: string }> } | undefined)?.tools;
       expect(tools).toBeDefined();
-      expect(tools).toHaveLength(14);
+      expect(tools).toHaveLength(15);
       expect(tools?.map((t) => t.name)).toContain("yoto_status");
 
       const stderrText = Buffer.concat(stderrChunks).toString("utf-8");

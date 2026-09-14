@@ -9,7 +9,7 @@ describe("YOTO_SCOPES", () => {
     }
   });
 
-  it("requests exactly the scopes the plan decided on", () => {
+  it("requests exactly the scopes the plan decided on, plus device-status:view", () => {
     expect([...YOTO_SCOPES].sort()).toEqual(
       [
         "profile",
@@ -19,6 +19,7 @@ describe("YOTO_SCOPES", () => {
         "user:icons:manage",
         "family:library:view",
         "family:devices:view",
+        "family:device-status:view",
       ].sort(),
     );
   });

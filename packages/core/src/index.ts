@@ -33,6 +33,7 @@ export {
   deleteCard,
   getCard,
   getDeviceConfig,
+  getDeviceStatus,
   getTranscodedStatus,
   getUploadUrl,
   listDevices,
@@ -62,7 +63,7 @@ export interface CreateServerOptions {
 }
 
 /**
- * Registers all 14 tools, the 3 resources, and the 2 prompts onto an
+ * Registers all 15 tools, the 3 resources, and the 2 prompts onto an
  * already-constructed `McpServer`. Split out from `createServer()` so a
  * caller that needs to build the `McpServer` itself (e.g. to pass
  * transport-specific options the plan hasn't decided on yet) can still

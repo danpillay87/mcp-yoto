@@ -55,6 +55,7 @@ export const YOTO_SCOPES = [
   "user:icons:manage",
   "family:library:view",
   "family:devices:view",
+  "family:device-status:view",
 ] as const;
 
 export const YOTO_SCOPE_STRING: string = YOTO_SCOPES.join(" ");

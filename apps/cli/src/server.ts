@@ -1,5 +1,5 @@
 /**
- * Builds the CLI's `McpServer` (all 14 `yoto_*` tools + resources + prompts,
+ * Builds the CLI's `McpServer` (all 15 `yoto_*` tools + resources + prompts,
  * via `@mcp-yoto/core`'s `createServer`) and serves it over stdio.
  *
  * `StdioServerTransport` lives at `@modelcontextprotocol/server/stdio`, NOT

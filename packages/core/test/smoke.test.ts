@@ -11,7 +11,7 @@ import { createLogger } from "../src/logging.js";
  * instead.
  */
 describe("packages/core public API", () => {
-  it("createTools() builds all 14 tool specs for a given mode", () => {
+  it("createTools() builds all 15 tool specs for a given mode", () => {
     const deps = {
       mode: "cli" as const,
       client: new YotoClient({ getToken: async () => "token" }),
@@ -29,8 +29,8 @@ describe("packages/core public API", () => {
       },
     };
     const tools = createTools(deps);
-    expect(tools).toHaveLength(14);
-    expect(new Set(tools.map((t) => t.name)).size).toBe(14);
+    expect(tools).toHaveLength(15);
+    expect(new Set(tools.map((t) => t.name)).size).toBe(15);
   });
 
   it("createServer() builds a real McpServer without throwing", () => {

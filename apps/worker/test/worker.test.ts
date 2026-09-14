@@ -495,7 +495,7 @@ describe("/authorize", () => {
     expect(location.searchParams.get("code_challenge_method")).toBe("S256");
     expect(location.searchParams.get("code_challenge")).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(location.searchParams.get("scope")).toBe(
-      "profile offline_access user:content:view user:content:manage user:icons:manage family:library:view family:devices:view",
+      "profile offline_access user:content:view user:content:manage user:icons:manage family:library:view family:devices:view family:device-status:view",
     );
   });
 
@@ -903,7 +903,7 @@ describe("static assets", () => {
 });
 
 describe("MCP protocol over /mcp", () => {
-  it("initializes, then lists exactly 14 fully-annotated tools", async () => {
+  it("initializes, then lists exactly 15 fully-annotated tools", async () => {
     const session = await signIn();
     const init = await mcpInitialize(session.accessToken);
     expect(init.error).toBeUndefined();
@@ -916,7 +916,7 @@ describe("MCP protocol over /mcp", () => {
       outputSchema?: { properties?: Record<string, unknown> };
     }>;
 
-    expect(tools).toHaveLength(14);
+    expect(tools).toHaveLength(15);
     expect(tools.map((t) => t.name).sort()).toEqual(
       [
         "yoto_status",
@@ -933,6 +933,7 @@ describe("MCP protocol over /mcp", () => {
         "yoto_upload_icon",
         "yoto_list_devices",
         "yoto_get_device_config",
+        "yoto_player_status",
       ].sort(),
     );
 

@@ -13,7 +13,7 @@ Requires Node >=22 (see `.nvmrc`).
 
 ## Repo shape
 
-- `packages/core` — runtime-agnostic Yoto client + the 14 `yoto_*` tool definitions. No `node:*` imports (it runs in both the Cloudflare Worker and the Node CLI) — this is lint-enforced, see `biome.json`.
+- `packages/core` — runtime-agnostic Yoto client + the 15 `yoto_*` tool definitions. No `node:*` imports (it runs in both the Cloudflare Worker and the Node CLI) — this is lint-enforced, see `biome.json`.
 - `apps/worker` — the remote MCP server (Cloudflare Worker, OAuth via `@cloudflare/workers-oauth-provider`).
 - `apps/cli` — the `npx mcp-yoto` local stdio server, published to npm.
 

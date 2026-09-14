@@ -66,7 +66,7 @@ npx -y mcp-yoto
 
 ### Tools
 
-14 tools, all `yoto_*`, each shipped with a title, description, icon, and all four MCP annotation hints (read-only / destructive / idempotent / open-world):
+15 tools, all `yoto_*`, each shipped with a title, description, icon, and all four MCP annotation hints (read-only / destructive / idempotent / open-world):
 
 | Tool | Purpose | Key inputs | Read-only |
 |---|---|---|---|
@@ -84,17 +84,18 @@ npx -y mcp-yoto
 | `yoto_upload_icon` | Upload a custom 16×16 icon | `imagePath\|imageUrl`, `title`, `autoConvert?` | no |
 | `yoto_list_devices` | Family players (view only) | – | yes |
 | `yoto_get_device_config` | Device config incl. right-hand-button shortcuts; 403 → friendly `FORBIDDEN_SCOPE` | `deviceId` | yes |
+| `yoto_player_status` | What's playing now: card, battery, volume, nightlight, headphones | `deviceId?`, `refresh?` | yes |
 
 ### Architecture
 
-One Cloudflare Worker runs the official MCP TypeScript SDK v2 (stateless Streamable HTTP) behind Cloudflare's own `@cloudflare/workers-oauth-provider` — the reference implementation for remote-MCP auth, so this project writes only the small Yoto-specific upstream handler, not its own OAuth server. The same core (Yoto client + tool definitions) also powers `npx mcp-yoto`, a local stdio server for direct use from Claude Code, Cursor, or any stdio-based MCP client. Requested scopes are `profile offline_access user:content:view user:content:manage user:icons:manage family:library:view family:devices:view` — deliberately **no** `family:devices:control` or `family:devices:manage`, which is what keeps this app eligible for Yoto's Verified listing.
+One Cloudflare Worker runs the official MCP TypeScript SDK v2 (stateless Streamable HTTP) behind Cloudflare's own `@cloudflare/workers-oauth-provider` — the reference implementation for remote-MCP auth, so this project writes only the small Yoto-specific upstream handler, not its own OAuth server. The same core (Yoto client + tool definitions) also powers `npx mcp-yoto`, a local stdio server for direct use from Claude Code, Cursor, or any stdio-based MCP client. Requested scopes are `profile offline_access user:content:view user:content:manage user:icons:manage family:library:view family:devices:view family:device-status:view` — deliberately **no** `family:devices:control` or `family:devices:manage`, which is what keeps this app eligible for Yoto's Verified listing.
 
 ### Roadmap
 
 | When | What |
 |---|---|
 | Week of 14 Sep | Scaffold + this outreach post (you're reading it) |
-| Week of 14 Sep | Yoto client + the 14 tools, tested against a mocked API |
+| Week of 14 Sep | Yoto client + the 15 tools, tested against a mocked API |
 | Week of 14 Sep | `npx mcp-yoto` — local sign-in working end to end |
 | Week of 21 Sep | Remote connector: Cloudflare Worker + Yoto OAuth, live for claude.ai / ChatGPT |
 | Week of 21 Sep | Security pass, real-client verification, Yoto Verified submission |

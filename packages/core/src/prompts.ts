@@ -5,7 +5,7 @@ import { z } from "zod";
  * Registers the 2 prompts from the plan: `bedtime_playlist_card` (build a
  * new card from a list of tracks) and `audit_card` (review one card for
  * anything that looks off). Both just draft an instruction for the model
- * to follow using the 14 tools -- neither touches the Yoto API itself.
+ * to follow using the 15 tools -- neither touches the Yoto API itself.
  */
 export function registerPrompts(server: McpServer): void {
   server.registerPrompt(
