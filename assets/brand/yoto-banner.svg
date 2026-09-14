@@ -10,6 +10,7 @@
   <!-- Mark: identical rounded square + play-triangle as logo.svg, scaled
        into place via viewBox rather than hand-rescaled coordinates. -->
   <svg x="120" y="225" width="450" height="450" viewBox="0 0 512 512">
+    <title>mcp-yoto mark</title>
     <rect x="0" y="0" width="512" height="512" rx="128" ry="128" fill="#FF7A45"/>
     <path
       d="M192,180 L192,332 Q192,384 236.3,356.7 L355.7,283.3 Q400,256 355.7,228.7 L236.3,155.3 Q192,128 192,180 Z"

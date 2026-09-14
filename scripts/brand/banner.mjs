@@ -37,7 +37,7 @@ function main() {
   const ihdrHeight = png.readUInt32BE(20);
   if (ihdrWidth !== WIDTH || ihdrHeight !== HEIGHT) {
     throw new Error(
-      `rendered PNG is ${ihdrWidth}x${ihdrHeight}, expected ${WIDTH}x${HEIGHT} -- check yoto-banner.svg's viewBox`
+      `rendered PNG is ${ihdrWidth}x${ihdrHeight}, expected ${WIDTH}x${HEIGHT} -- check yoto-banner.svg's viewBox`,
     );
   }
 
