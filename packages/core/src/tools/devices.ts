@@ -11,6 +11,25 @@ const READ_ONLY_ANNOTATIONS = {
   openWorldHint: true,
 } as const;
 
+/** Matches Wi-Fi/network-identifying key names -- ssid, bssid, any mac/ip address field. */
+const NETWORK_IDENTIFIER_KEY = /ssid|bssid|mac|ip[_a-z]*address|wifi.*(ssid|mac)/i;
+
+/**
+ * Strips network-identifying fields (Wi-Fi SSID/BSSID, MAC/IP addresses, ...) from a raw
+ * status object before it's echoed back in `raw` -- one level deep is enough, since
+ * deviceStatusSchema is flat. Covers both the documented `networkSsid` field and anything
+ * unlisted a live device might pass through (it's a loose/passthrough schema).
+ */
+function redactNetworkIdentifiers(
+  status: z.infer<typeof deviceStatusSchema>,
+): z.infer<typeof deviceStatusSchema> {
+  const redacted = { ...status } as Record<string, unknown>;
+  for (const key of Object.keys(redacted)) {
+    if (NETWORK_IDENTIFIER_KEY.test(key)) delete redacted[key];
+  }
+  return redacted as z.infer<typeof deviceStatusSchema>;
+}
+
 export function createDeviceTools(deps: CreateToolsDeps): AnyToolSpec[] {
   const yotoListDevices: AnyToolSpec = {
     name: "yoto_list_devices",
@@ -60,17 +79,20 @@ export function createDeviceTools(deps: CreateToolsDeps): AnyToolSpec[] {
 
   const yotoPlayerStatus: AnyToolSpec = {
     name: "yoto_player_status",
-    title: "What's playing on a Yoto player right now",
+    title: "Get a Yoto player's live status",
     description:
       "Live snapshot of one player: which card (if any) is loaded, battery level, " +
-      "volume, nightlight mode, and whether headphones are connected. Reads Yoto's " +
-      "device-status endpoint, which Yoto's own docs mark deprecated and which doesn't " +
-      "expose a playing-vs-paused signal -- so `state` can only tell you whether a card " +
-      "is inserted (\"stopped\" when there isn't one), not whether it's actively " +
-      "playing. `refresh: true` is accepted but never honoured: asking a player to push " +
-      "a fresh status needs the family:devices:control scope, which this server " +
-      "deliberately never requests (see the plan's Verified-listing scope decision) -- " +
-      "it always just reads whatever Yoto last recorded, and says so via refreshNote.",
+      "volume, nightlight mode, and whether headphones are connected. Uses a Yoto " +
+      "endpoint Yoto has marked deprecated (no replacement published yet) -- may stop " +
+      "working if Yoto removes it. That endpoint has no playing-vs-paused signal, so " +
+      "`state` only reports whether the player looks active, idle, or offline (see the " +
+      "state field for exactly what each value means), never real-time playback. " +
+      "`refresh: true` is accepted but never honoured: asking a player to push a fresh " +
+      "status needs the family:devices:control scope, which this server deliberately " +
+      "never requests (it only asks for view-level access, to stay eligible for Yoto's " +
+      "Verified listing) -- it always just reads whatever Yoto last recorded, and says " +
+      "so via refreshNote. Network identifiers (e.g. the home Wi-Fi name) are removed " +
+      "from the raw block.",
     group: "devices",
     annotations: READ_ONLY_ANNOTATIONS,
     inputSchema: z.object({
@@ -97,7 +119,14 @@ export function createDeviceTools(deps: CreateToolsDeps): AnyToolSpec[] {
         .string()
         .optional()
         .describe("Present when deviceId was omitted, saying which device was picked and why."),
-      state: z.enum(["playing", "paused", "stopped", "unknown"]),
+      state: z
+        .enum(["active", "idle", "offline", "unknown"])
+        .describe(
+          "active: an active card is set. idle: the player looks online with no active " +
+            "card. offline: the player is reporting (or was last seen) offline. unknown: " +
+            "not enough signal to tell either way. Yoto's status endpoint has no " +
+            "playing/paused field, so this can never distinguish playing from paused.",
+        ),
       activeCardId: z.string().optional(),
       activeCardTitle: z.string().nullable().optional(),
       cardTitleNote: z
@@ -117,7 +146,8 @@ export function createDeviceTools(deps: CreateToolsDeps): AnyToolSpec[] {
         .describe("Always false today -- see refreshNote and the tool description."),
       refreshNote: z.string().optional(),
       raw: deviceStatusSchema.describe(
-        "The untouched status response, for anything not surfaced above.",
+        "The status response, for anything not surfaced above -- network identifiers " +
+          "(e.g. the home Wi-Fi name) are stripped out before this is returned.",
       ),
     }),
     summary: (output) => {
@@ -180,12 +210,18 @@ export function createDeviceTools(deps: CreateToolsDeps): AnyToolSpec[] {
         throw error;
       }
 
-      const state: "playing" | "paused" | "stopped" | "unknown" =
-        status.cardInsertionState === undefined
-          ? "unknown"
-          : status.cardInsertionState === 0
-            ? "stopped"
-            : "unknown";
+      // Priority: an explicit offline signal always wins (showing "active" off stale
+      // data on an unreachable player would be misleading), then an active card, then
+      // a plain online signal, else there just isn't enough to go on.
+      const onlineSignal = status.isOnline ?? device.online;
+      const state: "active" | "idle" | "offline" | "unknown" =
+        onlineSignal === false
+          ? "offline"
+          : status.activeCard
+            ? "active"
+            : onlineSignal === true
+              ? "idle"
+              : "unknown";
       const cardInserted =
         status.cardInsertionState === undefined ? undefined : status.cardInsertionState !== 0;
 
@@ -222,7 +258,7 @@ export function createDeviceTools(deps: CreateToolsDeps): AnyToolSpec[] {
         refreshRequested: args.refresh,
         refreshApplied: false,
         refreshNote,
-        raw: status,
+        raw: redactNetworkIdentifiers(status),
       };
     },
   };

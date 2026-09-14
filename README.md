@@ -22,6 +22,7 @@ What you can do once it's connected:
 - Add tracks to a card you've already made, without opening the Yoto app.
 - Search and set pixel-art icons for your cards and chapters.
 - Check on your family's Yoto players — see what's connected, without being able to control them remotely.
+- Ask what's on a player right now — which card is loaded, battery, volume, nightlight, headphones.
 
 ### What you can say
 
@@ -32,6 +33,7 @@ Once it's connected, just ask in plain English:
 - "Add this new song to the 'Car Songs' card."
 - "Find a pixel-art icon of a dinosaur for chapter two."
 - "Which of my kids' Yoto players are online right now?"
+- "What's the kids' player playing right now?"
 
 ### How sign-in works
 
@@ -84,7 +86,7 @@ npx -y mcp-yoto
 | `yoto_upload_icon` | Upload a custom 16×16 icon | `imagePath\|imageUrl`, `title`, `autoConvert?` | no |
 | `yoto_list_devices` | Family players (view only) | – | yes |
 | `yoto_get_device_config` | Device config incl. right-hand-button shortcuts; 403 → friendly `FORBIDDEN_SCOPE` | `deviceId` | yes |
-| `yoto_player_status` | What's playing now: card, battery, volume, nightlight, headphones | `deviceId?`, `refresh?` | yes |
+| `yoto_player_status` | Live status: card, battery, volume, nightlight, headphones; uses a Yoto endpoint marked deprecated (no replacement published yet) | `deviceId?`, `refresh?` | yes |
 
 ### Architecture
 

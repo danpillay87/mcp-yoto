@@ -105,28 +105,104 @@ describe("yoto_player_status", () => {
     expect(output.deviceId).toBe("d1");
     expect(output.deviceCount).toBe(2);
     expect(output.deviceSelectionNote).toContain("first of 2");
-    // No card inserted -- state normalises to "stopped", never guessed as playing/paused.
-    expect(output.state).toBe("stopped");
     expect(output.cardInserted).toBe(false);
     expect(output.activeCardId).toBeUndefined();
   });
 
-  it("normalises state to unknown (not playing/paused) when a card is present", async () => {
-    const { deps } = buildDeps([
-      { status: 200, jsonBody: { devices: [{ deviceId: "d1" }] } },
-      {
-        status: 200,
-        jsonBody: { deviceId: "d1", cardInsertionState: 1, updatedAt: "2026-01-01T00:00:00.000Z" },
-      },
-    ]);
-    const tool = getPlayerStatusTool(deps);
+  describe("state", () => {
+    it("reports active when the status response has an active card", async () => {
+      const { deps } = buildDeps([
+        { status: 200, jsonBody: { devices: [{ deviceId: "d1" }] } },
+        {
+          status: 200,
+          jsonBody: {
+            deviceId: "d1",
+            activeCard: "card-1",
+            isOnline: true,
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+      ]);
+      const tool = getPlayerStatusTool(deps);
 
-    const output = await tool.handler({ refresh: false }, { logger: noopLogger });
+      const output = await tool.handler({ refresh: false }, { logger: noopLogger });
 
-    // Yoto's device-status endpoint documents no playing/paused field, so a
-    // card being loaded can't be reported as more than "unknown" -- this
-    // guards against ever silently guessing "playing".
-    expect(output.state).toBe("unknown");
+      expect(output.state).toBe("active");
+    });
+
+    it("reports idle when online with no active card", async () => {
+      const { deps } = buildDeps([
+        { status: 200, jsonBody: { devices: [{ deviceId: "d1" }] } },
+        {
+          status: 200,
+          jsonBody: { deviceId: "d1", isOnline: true, updatedAt: "2026-01-01T00:00:00.000Z" },
+        },
+      ]);
+      const tool = getPlayerStatusTool(deps);
+
+      const output = await tool.handler({ refresh: false }, { logger: noopLogger });
+
+      expect(output.state).toBe("idle");
+    });
+
+    it("reports offline from the status payload's own isOnline flag, even with an active card", async () => {
+      const { deps } = buildDeps([
+        { status: 200, jsonBody: { devices: [{ deviceId: "d1" }] } },
+        {
+          status: 200,
+          jsonBody: {
+            deviceId: "d1",
+            activeCard: "card-1",
+            isOnline: false,
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+        { status: 403, jsonBody: { message: "forbidden" } },
+      ]);
+      const tool = getPlayerStatusTool(deps);
+
+      const output = await tool.handler({ refresh: false }, { logger: noopLogger });
+
+      // An offline signal wins over an active card -- showing "active" off stale
+      // data on an unreachable player would be misleading.
+      expect(output.state).toBe("offline");
+    });
+
+    it("falls back to the device list's online flag when the status payload omits isOnline", async () => {
+      const { deps } = buildDeps([
+        { status: 200, jsonBody: { devices: [{ deviceId: "d1", online: false }] } },
+        {
+          status: 200,
+          jsonBody: { deviceId: "d1", updatedAt: "2026-01-01T00:00:00.000Z" },
+        },
+      ]);
+      const tool = getPlayerStatusTool(deps);
+
+      const output = await tool.handler({ refresh: false }, { logger: noopLogger });
+
+      expect(output.state).toBe("offline");
+    });
+
+    it("reports unknown when there's no online signal at all and no active card", async () => {
+      const { deps } = buildDeps([
+        { status: 200, jsonBody: { devices: [{ deviceId: "d1" }] } },
+        {
+          status: 200,
+          jsonBody: {
+            deviceId: "d1",
+            cardInsertionState: 1,
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+      ]);
+      const tool = getPlayerStatusTool(deps);
+
+      const output = await tool.handler({ refresh: false }, { logger: noopLogger });
+
+      // Yoto's device-status endpoint has no playing/paused field, and here there's
+      // no online signal either -- this must never be upgraded to a guess.
+      expect(output.state).toBe("unknown");
+    });
   });
 
   it("throws a clear NOT_FOUND when the family has no devices at all", async () => {
@@ -216,5 +292,27 @@ describe("yoto_player_status", () => {
     expect(calls).toHaveLength(2);
     expect(calls.every((call) => call.method === undefined || call.method === "GET")).toBe(true);
     expect(calls.some((call) => call.url.includes("command/status"))).toBe(false);
+  });
+
+  it("strips network identifiers (e.g. the home Wi-Fi name) out of the raw block", async () => {
+    const { deps } = buildDeps([
+      { status: 200, jsonBody: { devices: [{ deviceId: "d1" }] } },
+      {
+        status: 200,
+        jsonBody: {
+          deviceId: "d1",
+          networkSsid: "The Pillay Household",
+          isOnline: true,
+          updatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      },
+    ]);
+    const tool = getPlayerStatusTool(deps);
+
+    const output = await tool.handler({ refresh: false }, { logger: noopLogger });
+
+    expect(output.raw).not.toHaveProperty("networkSsid");
+    // Everything else in the raw block survives the redaction pass.
+    expect(output.raw).toMatchObject({ deviceId: "d1", isOnline: true });
   });
 });

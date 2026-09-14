@@ -154,7 +154,6 @@ export async function getDeviceStatus(client: YotoClient, deviceId: string): Pro
     method: "GET",
     path: `/device-v2/${encodeURIComponent(deviceId)}/status`,
     schema: deviceStatusSchema,
-    idempotent: true,
   });
 }
 
