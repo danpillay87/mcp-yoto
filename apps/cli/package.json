@@ -54,7 +54,7 @@
   },
   "devDependencies": {
     "@mcp-yoto/core": "0.1.0",
-    "@types/node": "24.9.2",
+    "@types/node": "26.5.1",
     "tsup": "8.5.1",
     "tsx": "4.23.13"
   }
