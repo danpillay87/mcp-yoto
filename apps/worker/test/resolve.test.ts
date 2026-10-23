@@ -47,6 +47,18 @@ interface Hop {
 let hops: Hop[] = [];
 
 /**
+ * workerd's `FixedLengthStream` doesn't exist under Node -- stand in with a
+ * pass-through that records the length it was promised.
+ */
+let fixedLengths: number[] = [];
+class FakeFixedLengthStream extends TransformStream<Uint8Array, Uint8Array> {
+  constructor(expectedLength: number) {
+    super();
+    fixedLengths.push(expectedLength);
+  }
+}
+
+/**
  * Installs a fetch stub driven by a routing table of URL -> response.
  * Anything not in the table is a hard failure, so a test can never silently
  * reach a URL it did not intend to.
@@ -77,6 +89,8 @@ function body(bytes: Uint8Array, contentType: string): () => Response {
 
 beforeEach(() => {
   hops = [];
+  fixedLengths = [];
+  vi.stubGlobal("FixedLengthStream", FakeFixedLengthStream);
 });
 
 afterEach(() => {
@@ -289,5 +303,31 @@ describe("content checks survive the redirect rewrite", () => {
     await expect(resolveImage({ imageUrl: "https://media.test/i.png" })).rejects.toThrow(
       /exceeded the .* limit/,
     );
+  });
+});
+
+// Yoto's upload URL is an S3 presigned PUT: a length-less (chunked) body gets
+// 501 NotImplemented, so the audio stream must always carry its exact length.
+describe("audio upload body has a declared length", () => {
+  it("wraps the stream in a FixedLengthStream of the response's declared size", async () => {
+    stubFetch({ "https://media.test/a.mp3": body(MP3_BYTES, "audio/mpeg") });
+    const out = await resolveAudio({ audioUrl: "https://media.test/a.mp3" });
+    expect(out.size).toBe(MP3_BYTES.byteLength);
+    expect(fixedLengths).toEqual([MP3_BYTES.byteLength]);
+    expect(new Uint8Array(await new Response(out.stream).arrayBuffer())).toEqual(MP3_BYTES);
+  });
+
+  it("buffers a body whose host declares no length, and still sends an exact one", async () => {
+    stubFetch({
+      "https://media.test/a.mp3": () =>
+        new Response(MP3_BYTES as unknown as BodyInit, {
+          status: 200,
+          headers: { "content-type": "audio/mpeg" },
+        }),
+    });
+    const out = await resolveAudio({ audioUrl: "https://media.test/a.mp3" });
+    expect(out.size).toBe(MP3_BYTES.byteLength);
+    expect(fixedLengths).toEqual([MP3_BYTES.byteLength]);
+    expect(new Uint8Array(await new Response(out.stream).arrayBuffer())).toEqual(MP3_BYTES);
   });
 });

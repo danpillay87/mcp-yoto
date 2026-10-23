@@ -63,6 +63,8 @@ describe("uploadAudio", () => {
     expect(calls).toHaveLength(5);
     expect(calls[1]?.url).toBe("https://s3.example/upload-1");
     expect(calls[1]?.method).toBe("PUT");
+    // S3 rejects a length-less (chunked) PUT with 501 -- the length must be declared.
+    expect(calls[1]?.headers["Content-Length"]).toBe(String("fake mp3 bytes".length));
   });
 
   it("skips the PUT when Yoto already has a matching file (uploadUrl: null, dedup)", async () => {

@@ -12,6 +12,7 @@ import { getTranscodedStatus, getUploadUrl } from "./endpoints.js";
  */
 export interface AudioSource {
   stream: ReadableStream<Uint8Array>;
+  /** Exact byte length of `stream` -- declared on the upload PUT, which S3 refuses without one. */
   size: number;
   contentType: string;
   filename?: string;
@@ -64,7 +65,14 @@ export async function uploadAudio(
   const { upload } = await getUploadUrl(client, { filename: source.filename });
 
   if (upload.uploadUrl) {
-    const putHeaders: Record<string, string> = { "Content-Type": source.contentType };
+    // `uploadUrl` is an S3 presigned PUT, and S3 answers a chunked (length-less)
+    // body with 501 NotImplemented. A streamed body carries no length of its
+    // own, so declare it: undici (the CLI) honours this header; workerd ignores
+    // it, which is why apps/worker's resolveAudio hands over a FixedLengthStream.
+    const putHeaders: Record<string, string> = {
+      "Content-Type": source.contentType,
+      "Content-Length": String(source.size),
+    };
     const putResponse = await client.fetchImpl(upload.uploadUrl, {
       method: "PUT",
       // `duplex: "half"` is required by fetch implementations (undici, the

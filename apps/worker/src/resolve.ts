@@ -20,10 +20,11 @@
  * reached, not whether the connection is still https. See that function.
  *
  * Audio is capped at 200 MB and streamed straight through to Yoto's upload
- * endpoint without ever buffering the whole file: the response body is
+ * endpoint without buffering the whole file: the response body is
  * `tee()`'d into a small head-bytes read (sniffing the real format from the
  * first few KB, independent of whatever the URL's path claims) and the full
- * stream handed on to `uploadAudio()`. Images are capped at 5 MB and buffered
+ * stream handed on to `uploadAudio()` as a fixed-length stream (a host that
+ * declares no usable length is the one case buffered). Images are capped at 5 MB and buffered
  * fully -- icons are small, and Yoto's upload endpoint wants the whole body
  * as one shot.
  */
@@ -354,8 +355,9 @@ function capStream(
 /**
  * Remote-mode `resolveAudio`: fetches `audioUrl`, sniffs its real format from
  * the first ~4KB via a `tee()`'d branch, and hands the *other* branch on as a
- * live stream -- so a `.txt` renamed `.mp3` fails as `INVALID_AUDIO` before
- * any Yoto call, and a real file is never buffered in full.
+ * live fixed-length stream -- so a `.txt` renamed `.mp3` fails as
+ * `INVALID_AUDIO` before any Yoto call, and a file whose host declares its
+ * length is never buffered in full.
  */
 export async function resolveAudio(input: AudioInput): Promise<AudioSource> {
   if (!("audioUrl" in input)) {
@@ -425,9 +427,27 @@ export async function resolveAudio(input: AudioInput): Promise<AudioSource> {
   const head = await readHeadBytes(sniffBranch, SNIFF_BYTES);
   sniffAudio(head, filename); // Throws INVALID_AUDIO before any Yoto call.
 
+  // Yoto's upload URL is an S3 presigned PUT, which answers a chunked
+  // (length-less) body with 501 NotImplemented. workerd only sends a length
+  // for a stream whose length it knows -- and `capStream` erases it, while a
+  // Content-Length header alone is ignored -- so the upload body is re-wrapped
+  // in a FixedLengthStream of the exact size. That size must come from THIS
+  // response (a HEAD can disagree) and only when the body isn't compressed (a
+  // declared length is then the encoded size, not the decoded bytes we stream);
+  // otherwise buffer it, still bounded by `capStream`.
+  let exactSize = response.headers.has("content-encoding")
+    ? undefined
+    : declaredContentLength(response);
+  let uploadStream = uploadBranch;
+  if (exactSize === undefined) {
+    const buffered = await new Response(uploadBranch).arrayBuffer();
+    exactSize = buffered.byteLength;
+    uploadStream = new Response(buffered).body as ReadableStream<Uint8Array>;
+  }
+
   return {
-    stream: uploadBranch,
-    size: size ?? 0,
+    stream: uploadStream.pipeThrough(new FixedLengthStream(exactSize)),
+    size: exactSize,
     contentType: response.headers.get("content-type") ?? "application/octet-stream",
     filename,
   };
